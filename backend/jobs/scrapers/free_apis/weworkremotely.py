@@ -10,6 +10,9 @@ import xml.etree.ElementTree as ET
 from email.utils import parsedate_to_datetime
 
 from ..base import normalize_job
+from jobs.logger import get_scraper_logger
+
+logger = get_scraper_logger("weworkremotely")
 
 
 # Convert RSS date into Django DateField format.
@@ -144,6 +147,7 @@ def fetch_weworkremotely():
         print(
             f"WeWorkRemotely scraper failed: {error}"
         )
+        logger.exception("Scraper failed")
 
 
     return jobs

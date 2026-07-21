@@ -15,6 +15,9 @@ import requests
 from bs4 import BeautifulSoup
 
 from jobs.scrapers.base import normalize_job
+from jobs.logger import get_scraper_logger
+
+logger = get_scraper_logger("ycombinator")
 
 
 # The jobs listing page on Work at a Startup.
@@ -41,14 +44,17 @@ def fetch_ycombinator():
     try:
 
         print("Searching Y Combinator...")
+        logger.info("Searching Y Combinator...")
 
         raw_jobs = fetch_yc_job_list()
 
         if not raw_jobs:
             print("YC: no jobs found in page data.")
+            logger.info("YC: no jobs found in page data.")
             return jobs
 
         print(f"YC jobs found: {len(raw_jobs)}")
+        logger.info(f"YC jobs found: {len(raw_jobs)}")
 
         for item in raw_jobs:
 
@@ -65,8 +71,10 @@ def fetch_ycombinator():
     except Exception as error:
 
         print(f"YC scraper failed: {error}")
+        logger.exception("Scraper failed")
 
     print(f"YC jobs: {len(jobs)}")
+    logger.info(f"YC jobs: {len(jobs)}")
 
     return jobs
 
@@ -90,6 +98,7 @@ def fetch_yc_job_list():
     except Exception as error:
 
         print(f"YC fetch failed: {error}")
+        logger.exception("Scraper failed")
 
         return []
 
@@ -106,6 +115,7 @@ def parse_inertia_jobs(html):
 
     if not root_div:
         print("YC: data-page div not found.")
+        logger.info("YC: data-page div not found.")
         return []
 
     raw_json = root_div.get("data-page", "")
@@ -172,6 +182,7 @@ def map_yc_job(item):
     except Exception as error:
 
         print(f"YC job mapping failed: {error}")
+        logger.exception("Scraper failed")
 
         return None
 

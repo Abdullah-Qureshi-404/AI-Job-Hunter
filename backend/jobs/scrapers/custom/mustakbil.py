@@ -13,6 +13,9 @@ from playwright.sync_api import sync_playwright
 from bs4 import BeautifulSoup
 
 from ..base import normalize_job
+from jobs.logger import get_scraper_logger
+
+logger = get_scraper_logger("mustakbil")
 
 
 MUSTAKBIL_URL = "https://www.mustakbil.com/jobs/pakistan"
@@ -62,6 +65,7 @@ def fetch_mustakbil():
     try:
 
         print("Searching Mustakbil...")
+        logger.info("Searching Mustakbil...")
 
         with sync_playwright() as p:
 
@@ -102,6 +106,7 @@ def fetch_mustakbil():
                     job_links.append((title, url))
 
         print("Jobs found:", len(job_links))
+        logger.info(f"Jobs found: {len(job_links)}")
 
         # Limit to avoid too many requests.
         for title, url in job_links[:20]:
@@ -120,8 +125,10 @@ def fetch_mustakbil():
 
     except Exception as error:
         print(f"Mustakbil scraper failed: {error}")
+        logger.exception("Scraper failed")
 
     print(f"Mustakbil jobs: {len(jobs)}")
+    logger.info(f"Mustakbil jobs: {len(jobs)}")
 
     return jobs
 
@@ -508,4 +515,5 @@ def fetch_mustakbil_details(url, listing_title=""):
 
     except Exception as error:
         print(f"Mustakbil detail failed: {error}")
+        logger.exception("Scraper failed")
         return None

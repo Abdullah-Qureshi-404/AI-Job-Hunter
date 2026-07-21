@@ -10,6 +10,9 @@ Returns jobs in our common Job model format.
 from jobspy import scrape_jobs
 from ..base import normalize_job
 from ..utils import safe_string, safe_int
+from jobs.logger import get_scraper_logger
+
+logger = get_scraper_logger("jobspy_scraper")
 
 
 # Search keywords for software jobs.
@@ -47,6 +50,7 @@ def fetch_from_jobspy():
         print(
             f"Searching: {search_term}..."
         )
+        logger.info(f"Searching: {search_term}...")
 
 
         try:
@@ -217,6 +221,7 @@ def fetch_from_jobspy():
             print(
                 f"JobSpy failed for {search_term}: {error}"
             )
+            logger.exception("Scraper failed")
 
             continue
 
@@ -225,6 +230,7 @@ def fetch_from_jobspy():
     print(
         f"JobSpy total unique jobs: {len(all_jobs)}"
     )
+    logger.info(f"JobSpy total unique jobs: {len(all_jobs)}")
 
 
     return all_jobs

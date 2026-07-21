@@ -12,6 +12,9 @@ from jobs.scrapers.base import normalize_job
 from jobs.scrapers.utils import fetch_json
 from jobs.scrapers.utils import contains_remote
 from jobs.scrapers.utils import extract_country
+from jobs.logger import get_scraper_logger
+
+logger = get_scraper_logger("jobicy")
 
 
 
@@ -186,6 +189,7 @@ def map_jobicy_job(item):
         print(
             f"Jobicy mapping failed: {error}"
         )
+        logger.exception("Scraper failed")
 
 
         return None

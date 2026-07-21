@@ -4,6 +4,9 @@ Fetch remote jobs from Ashby API.
 
 from jobs.scrapers.base import normalize_job
 from jobs.scrapers.utils import fetch_json
+from jobs.logger import get_scraper_logger
+
+logger = get_scraper_logger("ashby")
 
 
 ASHBY_COMPANIES = [
@@ -15,100 +18,106 @@ ASHBY_COMPANIES = [
 # This function fetches remote jobs from Ashby boards.
 def fetch_ashby():
 
-    jobs = []
+    try:
+        jobs = []
 
-    for company in ASHBY_COMPANIES:
+        for company in ASHBY_COMPANIES:
 
-        url = (
-            "https://api.ashbyhq.com/"
-            f"posting-api/job-board/{company}"
-        )
+            url = (
+                "https://api.ashbyhq.com/"
+                f"posting-api/job-board/{company}"
+            )
 
-        data = fetch_json(url)
+            data = fetch_json(url)
 
-        if not data:
-
-            continue
-
-        job_list = data.get(
-            "jobs",
-            []
-        )
-
-        for item in job_list:
-
-            if not item.get(
-                "isRemote",
-                False
-            ):
+            if not data:
 
                 continue
 
-            address = item.get(
-                "address",
-                {}
+            job_list = data.get(
+                "jobs",
+                []
             )
 
-            postal = address.get(
-                "postalAddress",
-                {}
-            )
+            for item in job_list:
 
-            mapped_job = {
+                if not item.get(
+                    "isRemote",
+                    False
+                ):
 
-                "title": item.get(
-                    "title"
-                ),
+                    continue
 
-                "company": company,
+                address = item.get(
+                    "address",
+                    {}
+                )
 
-                "location": item.get(
-                    "location",
-                    "Remote"
-                ),
+                postal = address.get(
+                    "postalAddress",
+                    {}
+                )
 
-                "country": postal.get(
-                    "addressCountry",
-                    ""
-                ),
+                mapped_job = {
 
-                "job_type": "remote",
+                    "title": item.get(
+                        "title"
+                    ),
 
-                "description": item.get(
-                    "descriptionHtml",
-                    ""
-                ),
+                    "company": company,
 
-                "requirements": "",
+                    "location": item.get(
+                        "location",
+                        "Remote"
+                    ),
 
-                "salary_min": None,
+                    "country": postal.get(
+                        "addressCountry",
+                        ""
+                    ),
 
-                "salary_max": None,
+                    "job_type": "remote",
 
-                "currency": "",
+                    "description": item.get(
+                        "descriptionHtml",
+                        ""
+                    ),
 
-                "source": "ashby",
+                    "requirements": "",
 
-                "source_url": item.get(
-                    "jobUrl"
-                ),
+                    "salary_min": None,
 
-                "source_id": item.get(
-                    "id"
-                ),
+                    "salary_max": None,
 
-                "is_remote": True,
+                    "currency": "",
 
-                "date_posted": item.get(
-                    "publishedAt"
-                ),
+                    "source": "ashby",
 
-            }
+                    "source_url": item.get(
+                        "jobUrl"
+                    ),
 
-            job = normalize_job(mapped_job)
+                    "source_id": item.get(
+                        "id"
+                    ),
 
-            if job:
+                    "is_remote": True,
 
-                jobs.append(job)
+                    "date_posted": item.get(
+                        "publishedAt"
+                    ),
 
-    return jobs
+                }
+
+                job = normalize_job(mapped_job)
+
+                if job:
+
+                    jobs.append(job)
+
+        return jobs
+
+    except Exception as e:
+        print(f"❌ ashby failed: {e}")
+        logger.exception("ashby scraper failed")
+        return []

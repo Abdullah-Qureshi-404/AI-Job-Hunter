@@ -1,74 +1,91 @@
-from django_filters.rest_framework import DjangoFilterBackend
-
-from rest_framework import generics, filters, status
-from rest_framework.views import APIView
+from rest_framework import generics
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from .models import Job
-from .serializers import JobSerializer, JobListSerializer
+from .serializers import JobSerializer
+from .serializers import JobListSerializer
 
-from .scrapers import fetch_all_free_api_jobs
-from .services import save_jobs_to_db
+from jobs.scrapers.orchestrator import run_all_scrapers
+from jobs.logger import get_scraper_logger
 
+
+logger = get_scraper_logger("views")
+
+
+# Returns a list of jobs with filtering and searching.
 class JobListView(generics.ListAPIView):
-    """
-    GET /api/jobs/
-    Returns all active jobs with filtering, search, and ordering.
 
-    Query params:
-      - source          e.g. ?source=greenhouse
-      - job_type        e.g. ?job_type=full-time
-      - country         e.g. ?country=Germany
-      - is_remote       e.g. ?is_remote=true
-      - search          e.g. ?search=python developer  (searches title & company)
-      - ordering        e.g. ?ordering=-date_fetched
-    """
+    queryset = Job.objects.filter(is_active=True)
+
     serializer_class = JobListSerializer
-    filter_backends = [
-        DjangoFilterBackend,
-        filters.SearchFilter,
-        filters.OrderingFilter,
+
+    filterset_fields = [
+        "source",
+        "job_type",
+        "country",
+        "is_remote",
     ]
-    filterset_fields = ['source', 'job_type', 'country', 'is_remote']
-    search_fields = ['title', 'company', 'description']
-    ordering_fields = ['date_posted', 'date_fetched', 'salary_min', 'salary_max']
-    ordering = ['-date_posted']
 
-    def get_queryset(self):
-        return Job.objects.filter(is_active=True)
+    search_fields = [
+        "title",
+        "company",
+    ]
+
+    ordering_fields = [
+        "date_posted",
+        "salary_min",
+        "salary_max",
+    ]
+
+    ordering = ["-date_posted"]
 
 
+# Returns details for a single job.
 class JobDetailView(generics.RetrieveAPIView):
-    """
-    GET /api/jobs/<id>/
-    Returns full detail for a single job.
-    """
-    queryset = Job.objects.all()
+
+    queryset = Job.objects.filter(is_active=True)
+
     serializer_class = JobSerializer
-    lookup_field = 'id'
 
 
+# Triggers fetching jobs from all scrapers.
 class FetchJobsView(APIView):
-    """
-    POST /api/jobs/fetch/
-    Fetch jobs from all APIs and save them.
-    """
 
-
-    # This function fetches jobs and saves them into database.
     def post(self, request):
+        """
+        Triggers job fetching from all scrapers.
+        POST /api/jobs/fetch/
+        """
 
-        jobs, stats = fetch_all_free_api_jobs()
+        try:
+            print("🚀 Job fetch triggered via API")
+            logger.info("Job fetch triggered via API")
 
-        result = save_jobs_to_db(jobs)
+            # Run all scrapers through orchestrator
+            result = run_all_scrapers()
 
-        return Response(
+            # Save jobs to database
+            from jobs.services import save_jobs_to_db
 
-            {
+            db_result = save_jobs_to_db(result["jobs"])
+
+            return Response({
                 "success": True,
-                "scrapers": stats,
-                "database": result,
-            },
+                "scrapers": result["stats"],
+                "total_fetched": result["total_fetched"],
+                "failed_sources": result["failed_sources"],
+                "database": {
+                    "new": db_result.get("new", 0),
+                    "skipped": db_result.get("skipped", 0),
+                    "total": db_result.get("total", 0),
+                }
+            })
 
-            status=status.HTTP_200_OK,
-        )
+        except Exception as e:
+            logger.exception("Job fetch via API failed")
+
+            return Response({
+                "success": False,
+                "error": str(e)
+            }, status=500)

@@ -1,63 +1,68 @@
+import os
+
 from django.db import models
 
 
+# This model stores information about the user profile.
 class Profile(models.Model):
-    """Stores the job-seeker's preferences and target criteria."""
 
-    class ExperienceLevel(models.TextChoices):
-        JUNIOR = 'junior', 'Junior'
-        MID    = 'mid',    'Mid'
-        SENIOR = 'senior', 'Senior'
+    EXPERIENCE_LEVELS = [
+        ("junior", "Junior"),
+        ("mid", "Mid"),
+        ("senior", "Senior"),
+    ]
 
-    name               = models.CharField(max_length=200)
-    email              = models.EmailField(unique=True)
-    skills             = models.TextField(
-        blank=True, default='',
-        help_text='Comma-separated list of skills, e.g. "Python, React, AWS"'
-    )
-    experience_level   = models.CharField(
+    name = models.CharField(max_length=200)
+
+    email = models.EmailField(unique=True)
+
+    skills = models.TextField()
+
+    experience_level = models.CharField(
         max_length=20,
-        choices=ExperienceLevel.choices,
-        default=ExperienceLevel.MID,
+        choices=EXPERIENCE_LEVELS
     )
-    preferred_roles    = models.TextField(
-        blank=True, default='',
-        help_text='Comma-separated, e.g. "AI Engineer, ML Engineer"'
-    )
-    target_countries   = models.TextField(
-        blank=True, default='',
-        help_text='Comma-separated, e.g. "Germany, United Kingdom, Remote"'
-    )
-    job_types_wanted   = models.TextField(
-        blank=True, default='',
-        help_text='Comma-separated, e.g. "full-time, remote"'
-    )
-    min_salary         = models.IntegerField(null=True, blank=True)
-    created_at         = models.DateTimeField(auto_now_add=True)
-    updated_at         = models.DateTimeField(auto_now=True)
 
-    class Meta:
-        db_table = 'profiles'
+    preferred_roles = models.TextField()
+
+    target_countries = models.TextField()
+
+    job_types_wanted = models.TextField()
+
+    min_salary = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return self.name
 
 
+# This model stores uploaded CV files.
 class CV(models.Model):
-    """A CV file uploaded by the user; text is extracted for matching."""
 
-    profile          = models.ForeignKey(
-        Profile, on_delete=models.CASCADE, related_name='cvs'
+    profile = models.ForeignKey(
+        Profile,
+        on_delete=models.CASCADE,
+        related_name="cvs"
     )
-    label            = models.CharField(max_length=200, default='My CV')
-    file_path        = models.FileField(upload_to='cvs/')
-    extracted_skills = models.TextField(blank=True, default='')
-    is_default       = models.BooleanField(default=False)
-    uploaded_at      = models.DateTimeField(auto_now_add=True)
 
-    class Meta:
-        db_table = 'cvs'
-        ordering = ['-uploaded_at']
+    label = models.CharField(max_length=255)
+
+    file = models.FileField(upload_to="cvs/")
+
+    extracted_skills = models.TextField(blank=True)
+
+    is_default = models.BooleanField(default=False)
+
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    def filename(self):
+        return os.path.basename(self.file.name)
 
     def __str__(self):
-        return f"{self.label} — {self.profile.name}"
+        return self.label

@@ -9,6 +9,9 @@ Endpoint: https://api.lever.co/v0/postings/{company}?mode=json
 from jobs.scrapers.base import normalize_job
 from jobs.scrapers.utils import fetch_json
 from jobs.scrapers.utils import extract_country
+from jobs.logger import get_scraper_logger
+
+logger = get_scraper_logger("lever")
 
 
 # Companies using Lever as their ATS.
@@ -148,6 +151,7 @@ def map_lever_job(item, company):
     except Exception as error:
 
         print(f"Lever job mapping failed for {company}: {error}")
+        logger.exception("Scraper failed")
 
         return None
 

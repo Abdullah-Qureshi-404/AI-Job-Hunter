@@ -9,6 +9,9 @@ import requests
 
 from ..base import normalize_job, clean_date
 from ..utils import clean_html
+from jobs.logger import get_scraper_logger
+
+logger = get_scraper_logger("himalayas")
 
 
 # Fetch remote jobs from Himalayas API.
@@ -128,6 +131,7 @@ def fetch_himalayas():
         print(
             f"Himalayas scraper failed: {error}"
         )
+        logger.exception("Scraper failed")
 
 
     return jobs

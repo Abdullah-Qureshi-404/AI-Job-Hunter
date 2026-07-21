@@ -10,6 +10,9 @@ import re
 
 from ..base import normalize_job, clean_date
 from ..utils import clean_html
+from jobs.logger import get_scraper_logger
+
+logger = get_scraper_logger("remotive")
 
 
 # Parse salary text into minimum and maximum values.
@@ -153,6 +156,7 @@ def fetch_remotive():
         print(
             f"Remotive scraper failed: {error}"
         )
+        logger.exception("Scraper failed")
 
 
     return jobs

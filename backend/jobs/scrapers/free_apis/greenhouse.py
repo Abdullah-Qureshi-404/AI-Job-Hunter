@@ -6,6 +6,9 @@ from jobs.scrapers.base import normalize_job
 from jobs.scrapers.utils import fetch_json
 from jobs.scrapers.utils import extract_country
 from jobs.scrapers.utils import contains_remote
+from jobs.logger import get_scraper_logger
+
+logger = get_scraper_logger("greenhouse")
 
 
 GREENHOUSE_COMPANIES = [
@@ -20,91 +23,97 @@ GREENHOUSE_COMPANIES = [
 # This function fetches remote jobs from Greenhouse boards.
 def fetch_greenhouse():
 
-    jobs = []
+    try:
+        jobs = []
 
-    for company in GREENHOUSE_COMPANIES:
+        for company in GREENHOUSE_COMPANIES:
 
-        url = (
-            f"https://boards-api.greenhouse.io/v1/"
-            f"boards/{company}/jobs"
-        )
-
-        data = fetch_json(url)
-
-        if not data:
-            continue
-
-        job_list = data.get("jobs", [])
-
-        for item in job_list:
-
-            location = item.get(
-                "location",
-                {}
-            ).get(
-                "name",
-                ""
+            url = (
+                f"https://boards-api.greenhouse.io/v1/"
+                f"boards/{company}/jobs"
             )
 
-            title = item.get("title", "")
+            data = fetch_json(url)
 
-            remote_text = (
-                f"{title} {location}"
-            )
-
-            if not contains_remote(remote_text):
-
+            if not data:
                 continue
 
-            mapped_job = {
+            job_list = data.get("jobs", [])
 
-                "title": title,
+            for item in job_list:
 
-                "company": item.get(
-                    "company_name",
-                    company
-                ),
+                location = item.get(
+                    "location",
+                    {}
+                ).get(
+                    "name",
+                    ""
+                )
 
-                "location": location,
+                title = item.get("title", "")
 
-                "country": extract_country(
-                    location
-                ),
+                remote_text = (
+                    f"{title} {location}"
+                )
 
-                "job_type": "remote",
+                if not contains_remote(remote_text):
 
-                "description": "",
+                    continue
 
-                "requirements": "",
+                mapped_job = {
 
-                "salary_min": None,
+                    "title": title,
 
-                "salary_max": None,
+                    "company": item.get(
+                        "company_name",
+                        company
+                    ),
 
-                "currency": "",
+                    "location": location,
 
-                "source": "greenhouse",
+                    "country": extract_country(
+                        location
+                    ),
 
-                "source_url": item.get(
-                    "absolute_url"
-                ),
+                    "job_type": "remote",
 
-                "source_id": item.get(
-                    "id"
-                ),
+                    "description": "",
 
-                "is_remote": True,
+                    "requirements": "",
 
-                "date_posted": item.get(
-                    "first_published"
-                ),
+                    "salary_min": None,
 
-            }
+                    "salary_max": None,
 
-            job = normalize_job(mapped_job)
+                    "currency": "",
 
-            if job:
+                    "source": "greenhouse",
 
-                jobs.append(job)
+                    "source_url": item.get(
+                        "absolute_url"
+                    ),
 
-    return jobs
+                    "source_id": item.get(
+                        "id"
+                    ),
+
+                    "is_remote": True,
+
+                    "date_posted": item.get(
+                        "first_published"
+                    ),
+
+                }
+
+                job = normalize_job(mapped_job)
+
+                if job:
+
+                    jobs.append(job)
+
+        return jobs
+
+    except Exception as e:
+        print(f"❌ greenhouse failed: {e}")
+        logger.exception("greenhouse scraper failed")
+        return []

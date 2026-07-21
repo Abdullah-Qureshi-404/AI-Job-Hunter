@@ -6,6 +6,10 @@ import re
 import math
 import requests
 
+from jobs.logger import get_scraper_logger
+
+logger = get_scraper_logger("utils")
+
 
 DEFAULT_HEADERS = {
 
@@ -48,6 +52,7 @@ def fetch_json(url):
 
         if response.status_code == 404:
             print(f"API endpoint not found: {url}")
+            logger.info(f"API endpoint not found: {url}")
             return None
         
         response.raise_for_status()
@@ -59,6 +64,7 @@ def fetch_json(url):
         print(f"Request failed: {url}")
 
         print(error)
+        logger.exception("Scraper failed")
 
         return None
 

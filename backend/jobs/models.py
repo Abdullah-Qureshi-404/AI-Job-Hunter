@@ -24,6 +24,13 @@ class Job(models.Model):
         ("wellfound", "Wellfound"),
         ("ycombinator", "Y Combinator"),
         ("lever", "Lever"),
+        ("himalayas", "Himalayas"),
+        ("remotive", "Remotive"),
+        ("weworkremotely", "We Work Remotely"),
+        ("jobicy", "Jobicy"),
+        ("mustakbil", "Mustakbil"),
+        ("jobspy_linkedin", "JobSpy LinkedIn"),
+        ("jobspy_indeed", "JobSpy Indeed"),
     ]
 
     title = models.CharField(max_length=255)
