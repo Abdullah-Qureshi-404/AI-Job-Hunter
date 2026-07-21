@@ -1,0 +1,78 @@
+# ======================
+# Python
+# ======================
+
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environment
+venv/
+env/
+.venv/
+ENV/
+
+
+# ======================
+# Django
+# ======================
+
+# Database files
+*.sqlite3
+
+# Django collected static files
+staticfiles/
+
+# Media uploads
+media/
+
+
+# ======================
+# Environment variables
+# ======================
+
+.env
+.env.*
+
+
+# ======================
+# IDE / Editor
+# ======================
+
+.vscode/
+.idea/
+
+# ======================
+# OS files
+# ======================
+
+.DS_Store
+Thumbs.db
+
+
+# ======================
+# Logs
+# ======================
+
+*.log
+
+
+# ======================
+# Testing / Coverage
+# ======================
+
+.coverage
+htmlcov/
+.pytest_cache/
+
+
+# ======================
+# Build files
+# ======================
+
+dist/
+build/
+*.egg-info/
+
+
+# ======================

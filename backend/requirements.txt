@@ -1,0 +1,14 @@
+Django
+djangorestframework
+psycopg2-binary
+python-dotenv
+pypdf
+groq
+langchain-groq
+python-jobspy
+apscheduler
+django-cors-headers
+django-filter
+dj-database-url
+requests
+beautifulsoup4
