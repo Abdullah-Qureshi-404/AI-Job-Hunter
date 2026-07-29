@@ -8,8 +8,7 @@ JOB_HUNTER_BASE = "http://localhost:8000"
 
 SUPABASE_URL = os.getenv("SUPABASE_URL", "https://twklxrdaopzgpxrjgltb.supabase.co")
 SUPABASE_SERVICE_KEY = os.getenv(
-    "SUPABASE_SERVICE_KEY",
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR3a2x4cmRhb3B6Z3B4cmpnbHRiIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4NDcwOTE4OCwiZXhwIjoyMTAwMjg1MTg4fQ.2KpEwVH2N_E71tRt2lpe1Uf_UCYrPyy-4kiD6yFE12g"
+    "SUPABASE_SERVICE_KEY"
 )
 
 # Test credentials & data
