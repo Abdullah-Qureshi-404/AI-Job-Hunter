@@ -64,7 +64,7 @@ INSTALLED_APPS = [
     "profiles",
     "matcher",
     "outreach",
-    "tracker",
+    # "tracker",
 ]
 
 
@@ -195,18 +195,26 @@ CORS_ALLOW_ALL_ORIGINS = True
 
 
 # ---------------------------------------------------
+# Supabase Settings
+# ---------------------------------------------------
+
+SUPABASE_URL = os.getenv("SUPABASE_URL", "")
+
+SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY", "")
+
+
+# ---------------------------------------------------
 # Django REST Framework
 # ---------------------------------------------------
 
 REST_FRAMEWORK = {
 
     "DEFAULT_AUTHENTICATION_CLASSES": [
-        "rest_framework.authentication.SessionAuthentication",
-        "rest_framework.authentication.BasicAuthentication",
+        "core.authentication.SupabaseAuthentication",
     ],
 
     "DEFAULT_PERMISSION_CLASSES": [
-        "rest_framework.permissions.AllowAny",
+        "rest_framework.permissions.IsAuthenticated",
     ],
 
     "DEFAULT_FILTER_BACKENDS": [

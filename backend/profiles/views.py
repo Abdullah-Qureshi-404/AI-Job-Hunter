@@ -33,9 +33,20 @@ def extract_pdf_text(file_path):
 # This view creates and lists profiles.
 class ProfileView(generics.ListCreateAPIView):
 
-    queryset = Profile.objects.all()
-
     serializer_class = ProfileSerializer
+
+    def get_queryset(self):
+        supabase_uid = getattr(self.request.user, "supabase_uid", None)
+
+        if supabase_uid:
+            return Profile.objects.filter(supabase_uid=supabase_uid)
+
+        return Profile.objects.none()
+
+    def perform_create(self, serializer):
+        supabase_uid = getattr(self.request.user, "supabase_uid", None)
+
+        serializer.save(supabase_uid=supabase_uid)
 
 
 # This view lists all uploaded CVs.

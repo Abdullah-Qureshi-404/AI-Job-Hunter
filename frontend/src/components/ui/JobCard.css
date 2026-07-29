@@ -1,0 +1,105 @@
+/* ========================================
+   JobCard — Stylesheet
+   ======================================== */
+
+.job-card {
+  background: #111118;
+  border: 0.5px solid #2a2a3a;
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  cursor: pointer;
+  transition: border-color 0.25s ease, transform 0.2s ease, box-shadow 0.25s ease;
+}
+
+.job-card:hover {
+  border-color: #7c6ff7;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(124, 111, 247, 0.08);
+}
+
+.job-card--top-match {
+  border-color: rgba(124, 111, 247, 0.3);
+}
+
+/* ---------- Content ---------- */
+.job-card-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.job-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.job-card-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #e8e8f0;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.job-card-top-label {
+  font-size: 9px;
+  font-weight: 600;
+  color: #7c6ff7;
+  background: rgba(124, 111, 247, 0.12);
+  padding: 2px 6px;
+  border-radius: 4px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+
+.job-card-company {
+  font-size: 12px;
+  color: #9090a8;
+  margin: 0 0 8px;
+}
+
+.job-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* ---------- Tags ---------- */
+.job-card-tag {
+  font-size: 10px;
+  font-weight: 500;
+  padding: 3px 8px;
+  border-radius: 4px;
+  letter-spacing: 0.2px;
+}
+
+.job-card-tag--location {
+  color: #9090a8;
+  background: rgba(144, 144, 168, 0.1);
+}
+
+.job-card-tag--remote {
+  color: #4caf65;
+  background: rgba(76, 175, 101, 0.1);
+}
+
+.job-card-tag--default {
+  color: #9090a8;
+  background: rgba(144, 144, 168, 0.08);
+}
+
+/* ---------- Match Column ---------- */
+.job-card-match {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

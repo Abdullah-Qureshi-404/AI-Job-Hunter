@@ -1,0 +1,160 @@
+/* ========================================
+   Resumes Page — Stylesheet
+   ======================================== */
+
+.resumes-container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+/* ---------- Resume Cards Grid ---------- */
+.resumes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
+}
+
+.resume-card {
+  background: #111118;
+  border: 0.5px solid #2a2a3a;
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 16px;
+  transition: border-color 0.25s ease, transform 0.2s ease;
+}
+
+.resume-card:hover {
+  border-color: #7c6ff7;
+  transform: translateY(-2px);
+}
+
+.resume-card-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.resume-file-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 8px;
+  background: rgba(124, 111, 247, 0.1);
+  color: #7c6ff7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.resume-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+}
+
+.resume-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #e8e8f0;
+  margin: 0;
+}
+
+.resume-date {
+  font-size: 11px;
+  color: #6b6b80;
+}
+
+.resume-skills-chips {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.resume-skill-tag {
+  font-size: 10px;
+  font-weight: 500;
+  padding: 3px 8px;
+  border-radius: 4px;
+  color: #9090a8;
+  background: rgba(144, 144, 168, 0.08);
+}
+
+.resume-card-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  border-top: 0.5px solid #2a2a3a;
+  padding-top: 12px;
+}
+
+.resume-icon-btn {
+  background: transparent;
+  border: none;
+  color: #9090a8;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s ease, background 0.2s ease;
+}
+
+.resume-icon-btn:hover {
+  color: #7c6ff7;
+  background: rgba(124, 111, 247, 0.08);
+}
+
+.resume-icon-btn.delete:hover {
+  color: #ff6b6b;
+  background: rgba(255, 107, 107, 0.08);
+}
+
+/* ---------- Upload Dropzone (Bottom) ---------- */
+.resumes-dropzone {
+  background: #111118;
+  border: 2px dashed #2a2a3a;
+  border-radius: 12px;
+  padding: 40px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.25s ease, background 0.25s ease;
+}
+
+.resumes-dropzone:hover {
+  border-color: #7c6ff7;
+  background: rgba(124, 111, 247, 0.02);
+}
+
+.resumes-dropzone-icon {
+  font-size: 36px;
+  color: #7c6ff7;
+}
+
+.resumes-dropzone-text {
+  font-size: 14px;
+  font-weight: 500;
+  color: #e8e8f0;
+  margin: 0;
+}
+
+.resumes-dropzone-subtext {
+  font-size: 12px;
+  color: #6b6b80;
+  margin: 0;
+}

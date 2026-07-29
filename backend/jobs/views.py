@@ -89,3 +89,165 @@ class FetchJobsView(APIView):
                 "success": False,
                 "error": str(e)
             }, status=500)
+
+
+# Analyzes job description using ApplyAI service.
+class AnalyzeJobView(APIView):
+
+    def post(self, request):
+        """
+        POST /api/jobs/analyze/
+        """
+        from rest_framework import status
+        from .serializers import JobAnalyzeSerializer
+        from services.apply_ai_client import analyze_job
+
+        serializer = JobAnalyzeSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        token = request.auth
+        job_description = serializer.validated_data["job_description"]
+
+        result = analyze_job(token, job_description)
+
+        if result is None:
+            return Response(
+                {"error": "Job analysis service unavailable or failed."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+        return Response(result, status=status.HTTP_200_OK)
+
+
+# Generates tailored resume content using ApplyAI service.
+class GenerateResumeView(APIView):
+
+    def post(self, request):
+        """
+        POST /api/jobs/generate-resume/
+        """
+        from rest_framework import status
+        from .serializers import JobAnalyzeSerializer
+        from services.apply_ai_client import generate_resume
+
+        serializer = JobAnalyzeSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        token = request.auth
+        job_description = serializer.validated_data["job_description"]
+
+        result = generate_resume(token, job_description)
+
+        if result is None:
+            return Response(
+                {"error": "Resume generation service unavailable or failed."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+        return Response(result, status=status.HTTP_200_OK)
+
+
+# Generates personalized outreach email using ApplyAI service.
+class GenerateEmailView(APIView):
+
+    def post(self, request):
+        """
+        POST /api/jobs/generate-email/
+        """
+        from rest_framework import status
+        from .serializers import EmailGenerateSerializer
+        from services.apply_ai_client import generate_email
+
+        serializer = EmailGenerateSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        token = request.auth
+        job_title = serializer.validated_data["job_title"]
+        company_name = serializer.validated_data["company_name"]
+        job_description = serializer.validated_data["job_description"]
+
+        result = generate_email(
+            token=token,
+            job_title=job_title,
+            company_name=company_name,
+            job_description=job_description,
+        )
+
+        if result is None:
+            return Response(
+                {"error": "Email generation service unavailable or failed."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+        return Response(result, status=status.HTTP_200_OK)
+
+
+# Analyzes job description screenshot image using ApplyAI service.
+class AnalyzeJobImageView(APIView):
+
+    def post(self, request):
+        """
+        POST /api/jobs/analyze-image/
+        """
+        from rest_framework import status
+        from services.apply_ai_client import analyze_job_from_image
+
+        token = request.auth
+        if not token:
+            return Response(
+                {"error": "Authentication token missing."},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+
+        if "file" not in request.FILES:
+            return Response(
+                {"error": "No image file provided in request."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        uploaded_file = request.FILES["file"]
+        content_type = uploaded_file.content_type.lower() if uploaded_file.content_type else ""
+
+        valid_types = {
+            "image/jpeg": "image/jpeg",
+            "image/jpg": "image/jpeg",
+            "image/png": "image/png",
+            "image/webp": "image/webp",
+        }
+
+        if content_type not in valid_types and uploaded_file.name:
+            ext = uploaded_file.name.lower().split(".")[-1]
+            if ext in ["jpg", "jpeg"]:
+                content_type = "image/jpeg"
+            elif ext == "png":
+                content_type = "image/png"
+            elif ext == "webp":
+                content_type = "image/webp"
+
+        if content_type not in valid_types:
+            return Response(
+                {"error": "Invalid image format. Allowed formats: JPEG, PNG, WEBP."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        image_bytes = uploaded_file.read()
+        media_type = valid_types[content_type]
+
+        result = analyze_job_from_image(
+            token=token,
+            image_bytes=image_bytes,
+            image_media_type=media_type
+        )
+
+        if result is None:
+            return Response(
+                {"error": "Image job analysis service unavailable or failed."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+        return Response(result, status=status.HTTP_200_OK)
+
+

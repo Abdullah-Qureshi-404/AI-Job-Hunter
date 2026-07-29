@@ -15,7 +15,7 @@ urlpatterns = [
     path("api/profiles/", include("profiles.urls")),
     path("api/matcher/", include("matcher.urls")),
     path("api/outreach/", include("outreach.urls")),
-    path("api/tracker/", include("tracker.urls")),
+    # path("api/tracker/", include("tracker.urls")),
 ]
 
 # Serve uploaded media files during development

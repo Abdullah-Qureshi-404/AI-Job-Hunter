@@ -29,3 +29,15 @@ class JobListSerializer(serializers.ModelSerializer):
             "date_posted",
             "is_remote",
         ]
+
+
+# Serializer for job analysis and resume generation request.
+class JobAnalyzeSerializer(serializers.Serializer):
+    job_description = serializers.CharField(required=True)
+
+
+# Serializer for email generation request.
+class EmailGenerateSerializer(serializers.Serializer):
+    job_title = serializers.CharField(required=True)
+    company_name = serializers.CharField(required=True)
+    job_description = serializers.CharField(required=True)

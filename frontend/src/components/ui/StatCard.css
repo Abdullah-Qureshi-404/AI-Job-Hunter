@@ -1,0 +1,33 @@
+/* ========================================
+   StatCard — Stylesheet
+   ======================================== */
+
+.stat-card {
+  background: #111118;
+  border: 0.5px solid #2a2a3a;
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: border-color 0.25s ease, transform 0.2s ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+}
+
+.stat-card-label {
+  font-size: 12px;
+  font-weight: 400;
+  color: #9090a8;
+  margin: 0;
+  letter-spacing: 0.3px;
+}
+
+.stat-card-value {
+  font-size: 28px;
+  font-weight: 700;
+  margin: 0;
+  letter-spacing: -0.5px;
+}

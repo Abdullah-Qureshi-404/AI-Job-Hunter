@@ -1,0 +1,18 @@
+/* ========================================
+   MatchBadge — Stylesheet
+   ======================================== */
+
+.match-badge {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.match-badge-text {
+  position: absolute;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+}
