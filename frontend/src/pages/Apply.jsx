@@ -15,6 +15,9 @@ import {
   generateResume,
   generateEmail,
 } from '../services/jobsApi';
+import { parseApiError } from '../services/api';
+import ResumeEditor from '../components/ui/ResumeEditor';
+import { getProfile } from '../services/profileApi';
 import './Apply.css';
 
 export default function Apply() {
@@ -41,6 +44,10 @@ export default function Apply() {
   const [generatingEmailState, setGeneratingEmailState] = useState(false);
   const [emailSubject, setEmailSubject] = useState('');
   const [emailBody, setEmailBody] = useState('');
+
+  // Working copy of the generated resume that the user can edit in place.
+  const [editableResume, setEditableResume] = useState(null);
+  const [resumeHeader, setResumeHeader] = useState({ name: '', contact: '' });
 
   const [error, setError] = useState(null);
 
@@ -87,6 +94,10 @@ export default function Apply() {
       setError('Please enter a job description before analyzing.');
       return;
     }
+    if (mode === 'text' && jobText.trim().length < 30) {
+      setError('Job description must be at least 30 characters. Paste the full posting.');
+      return;
+    }
     if (mode === 'screenshot' && !selectedFile) {
       setError('Please select an image screenshot file.');
       return;
@@ -106,15 +117,40 @@ export default function Apply() {
       setAnalyzing(false);
       setCurrentStep(2);
 
-      // Trigger resume generation for Step 2
+      // Prefer full JD text for resume generation (short titles fail RAG quality).
+      const resumeJd = jobText.trim().length >= 30
+        ? jobText
+        : [
+            analysis?.job_title,
+            analysis?.company,
+            ...(analysis?.key_responsibilities || []),
+            ...(analysis?.required_skills || []),
+          ].filter(Boolean).join('\n');
+
       setGeneratingResumeState(true);
       const resData = await generateResume({
-        job_description: jobText || analysis?.job_title || 'Software Engineer',
+        job_description: resumeJd || 'Software Engineer role',
       });
       setResumeResult(resData);
+      setEditableResume(resData?.resume_content || null);
+
+      // Name and contact details come from the user's profile, never from the
+      // model - it has no reliable source for them.
+      try {
+        const profData = await getProfile();
+        const prof = Array.isArray(profData) ? profData[0] : profData;
+        if (prof) {
+          setResumeHeader({
+            name: prof.name || '',
+            contact: [prof.email, prof.target_countries].filter(Boolean).join('  |  '),
+          });
+        }
+      } catch {
+        /* header stays blank and editable */
+      }
     } catch (err) {
       console.error('Analysis / Resume generation failed:', err);
-      setError('Analysis failed. Please check your backend connection or input text.');
+      setError(parseApiError(err) || 'Analysis failed. Paste a fuller job description and ensure Apply AI is running on :8001.');
     } finally {
       setAnalyzing(false);
       setGeneratingResumeState(false);
@@ -140,9 +176,11 @@ export default function Apply() {
       }
     } catch (err) {
       console.error('Email generation failed:', err);
-      setError('Email generation failed. Using default template.');
-      setEmailSubject(`Application for ${job?.title || 'Software Engineer'} at ${job?.company || 'Company'}`);
-      setEmailBody(`Dear Hiring Team,\n\nI am writing to express my interest in the ${job?.title || 'Software Engineer'} role.`);
+      // No stub template: a two-line placeholder presented as a generated
+      // email is worse than an honest failure.
+      setError(parseApiError(err) || 'Email generation failed. Ensure Apply AI is running on :8001.');
+      setEmailSubject('');
+      setEmailBody('');
     } finally {
       setGeneratingEmailState(false);
     }
@@ -279,57 +317,42 @@ export default function Apply() {
                 </h2>
                 <p className="apply-subtitle">AI-optimized bullet points matched to target job description</p>
               </div>
-              <div className="apply-ats-badge">
-                <HiOutlineCheckCircle /> ATS Score: 92/100
-              </div>
             </div>
 
             {generatingResumeState ? (
               <div className="apply-preview-box" style={{ textAlign: 'center', color: '#7c6ff7' }}>
                 Generating tailored resume content...
               </div>
+            ) : editableResume ? (
+              <>
+                <p className="apply-subtitle" style={{ marginBottom: 12 }}>
+                  Click any line to edit it, then export. Text stays selectable
+                  in the PDF so applicant tracking systems can read it.
+                </p>
+                <ResumeEditor
+                  content={editableResume}
+                  header={resumeHeader}
+                  onChange={setEditableResume}
+                />
+                <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
+                  <button type="button" className="apply-btn-next" onClick={() => window.print()}>
+                    Export PDF
+                  </button>
+                  <button
+                    type="button"
+                    className="apply-btn-back"
+                    onClick={() => setEditableResume(resumeResult?.resume_content || null)}
+                  >
+                    Reset edits
+                  </button>
+                </div>
+              </>
             ) : (
               <div className="apply-preview-box">
-                {resumeResult?.resume_content ? (
-                  <>
-                    <strong>PROFESSIONAL SUMMARY:</strong>
-                    <br />
-                    {resumeResult.resume_content.professional_summary}
-                    <br /><br />
-                    <strong>HIGHLIGHTED SKILLS:</strong>
-                    <br />
-                    {Array.isArray(resumeResult.resume_content.highlighted_skills)
-                      ? resumeResult.resume_content.highlighted_skills.join(' • ')
-                      : resumeResult.resume_content.highlighted_skills}
-                    <br /><br />
-                    <strong>TAILORED EXPERIENCES:</strong>
-                    <br />
-                    {resumeResult.resume_content.tailored_experiences?.map((exp, idx) => (
-                      <div key={idx} style={{ marginBottom: 10 }}>
-                        <em>{exp.role} at {exp.company}</em>
-                        {exp.bullet_points?.map((bp, bidx) => (
-                          <div key={bidx}>• {bp}</div>
-                        ))}
-                      </div>
-                    ))}
-                  </>
-                ) : (
-                  <>
-                    <strong>ABDUL KAREEM</strong>
-                    <br />
-                    Senior Backend Engineer | Python & Distributed Systems Specialist
-                    <br /><br />
-                    <strong>RELEVANT EXPERIENCE HIGHLIGHTS:</strong>
-                    <br />
-                    • Architected microservices handling 2M+ requests/day using Django & PostgreSQL, reducing API latency by 35%.
-                    <br />
-                    • Designed RESTful APIs & webhooks integrated with Stripe payment gateways and third-party SaaS tools.
-                    <br />
-                    • Optimized SQL queries and Redis caching layers to ensure 99.99% uptime for core financial endpoints.
-                    <br />
-                    • Led migration from monolith to containerized Docker services orchestrated with Kubernetes on AWS.
-                  </>
-                )}
+                <span style={{ color: '#9090a8' }}>
+                  No resume was generated. Upload a resume on the Resumes page,
+                  then try again once Apply AI is reachable.
+                </span>
               </div>
             )}
 

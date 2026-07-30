@@ -1,7 +1,7 @@
 import Sidebar from './Sidebar';
 import Topbar from './Topbar';
 
-export default function MainLayout({ title, primaryButton, secondaryButton, children }) {
+export default function MainLayout({ title, primaryButton, secondaryButton, onPrimaryClick, onSecondaryClick, children }) {
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: '#0a0a0f' }}>
       <Sidebar />
@@ -16,6 +16,8 @@ export default function MainLayout({ title, primaryButton, secondaryButton, chil
           title={title}
           primaryButton={primaryButton}
           secondaryButton={secondaryButton}
+          onPrimaryClick={onPrimaryClick}
+          onSecondaryClick={onSecondaryClick}
         />
         <main style={{
           flex: 1,

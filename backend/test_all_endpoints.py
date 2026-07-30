@@ -6,15 +6,31 @@ from supabase import create_client
 APPLY_AI_BASE = "http://localhost:8001"
 JOB_HUNTER_BASE = "http://localhost:8000"
 
-SUPABASE_URL = os.getenv("SUPABASE_URL", "https://twklxrdaopzgpxrjgltb.supabase.co")
-SUPABASE_SERVICE_KEY = os.getenv(
-    "SUPABASE_SERVICE_KEY",
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR3a2x4cmRhb3B6Z3B4cmpnbHRiIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4NDcwOTE4OCwiZXhwIjoyMTAwMjg1MTg4fQ.2KpEwVH2N_E71tRt2lpe1Uf_UCYrPyy-4kiD6yFE12g"
-)
+# Credentials come from the environment only. Never inline a service_role key
+# here - it bypasses row level security for the entire Supabase project.
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY")
 
-# Test credentials & data
-TEST_EMAIL = "applyai.test2026@gmail.com"
-TEST_PASSWORD = "123456789"
+TEST_EMAIL = os.getenv("TEST_EMAIL")
+TEST_PASSWORD = os.getenv("TEST_PASSWORD")
+
+_missing = [
+    name
+    for name, value in {
+        "SUPABASE_URL": SUPABASE_URL,
+        "SUPABASE_SERVICE_KEY": SUPABASE_SERVICE_KEY,
+        "TEST_EMAIL": TEST_EMAIL,
+        "TEST_PASSWORD": TEST_PASSWORD,
+    }.items()
+    if not value
+]
+
+if _missing:
+    sys.exit(
+        "Missing environment variables: "
+        + ", ".join(_missing)
+        + "\nSet them before running this script."
+    )
 
 JOB_DESC = "We are looking for a Python Django backend developer with 2 years experience in REST APIs and PostgreSQL"
 

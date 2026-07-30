@@ -6,7 +6,7 @@ This file performs shared validation and cleanup before saving.
 """
 
 from datetime import datetime
-from .utils import safe_int, safe_string, clean_html
+from .utils import safe_int, safe_string, clean_html, extract_requirements
 
 
 # This function checks if a job is fully remote.
@@ -118,10 +118,20 @@ def normalize_job(job):
     if not job.get("source_id"):
         return None
 
+    description = clean_html(job.get("description", ""))
+
+    # Every upstream API returns a single combined description, so each
+    # scraper passes requirements="". Recover the requirements section from
+    # the description instead of leaving the field permanently empty.
+    requirements = safe_string(job.get("requirements")) or ""
+
+    if not requirements:
+        requirements = extract_requirements(description)
+
     normalized_job = {
 
         "title": safe_string(job.get("title"))[:255],
-        
+
         "company": company[:255],
 
         "location": (safe_string(job.get("location")) or "Remote")[:255],
@@ -130,9 +140,9 @@ def normalize_job(job):
 
         "job_type": normalize_job_type(job.get("job_type", "")),
 
-        "description": clean_html(job.get("description", "")),
+        "description": description,
 
-        "requirements": safe_string(job.get("requirements")) or "",
+        "requirements": requirements,
 
         "salary_min": safe_int(job.get("salary_min")),
 

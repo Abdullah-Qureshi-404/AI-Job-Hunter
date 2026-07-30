@@ -1,3 +1,12 @@
+from django.db.models import Case
+from django.db.models import F
+from django.db.models import IntegerField
+from django.db.models import OuterRef
+from django.db.models import Q
+from django.db.models import Subquery
+from django.db.models import Value
+from django.db.models import When
+
 from rest_framework import generics
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -13,12 +22,102 @@ from jobs.logger import get_scraper_logger
 logger = get_scraper_logger("views")
 
 
-# Returns a list of jobs with filtering and searching.
-class JobListView(generics.ListAPIView):
+def jobs_with_match_score(request):
+    """
+    Active jobs annotated with this user's match score (null if unmatched).
+
+    Without the annotation the frontend has no score to render, which is what
+    previously led the UI to display a hardcoded percentage.
+    """
+    from matcher.models import MatchedJob
+
+    supabase_uid = getattr(request.user, "supabase_uid", None)
 
     queryset = Job.objects.filter(is_active=True)
 
+    if not supabase_uid:
+        return queryset
+
+    scores = MatchedJob.objects.filter(
+        job=OuterRef("pk"),
+        supabase_uid=supabase_uid,
+    ).values("match_score")[:1]
+
+    return queryset.annotate(match_score=Subquery(scores))
+
+
+# Returns a list of jobs with filtering and searching.
+class JobListView(generics.ListAPIView):
+
     serializer_class = JobListSerializer
+
+    def filter_queryset(self, queryset):
+        queryset = super().filter_queryset(queryset)
+
+        # OrderingFilter applies `self.ordering` (date desc) after our
+        # get_queryset ran, which would discard the relevance ranking. Put it
+        # back, unless the client asked for an explicit ordering.
+        if self._search_terms() and not self.request.query_params.get("ordering"):
+            queryset = queryset.order_by(
+                "-relevance",
+                F("date_posted").desc(nulls_last=True),
+            )
+
+        return queryset
+
+    def _search_terms(self):
+        search = self.request.query_params.get("search", "").strip()
+        return [term for term in search.split() if term]
+
+    def get_queryset(self):
+        queryset = jobs_with_match_score(self.request)
+
+        terms = self._search_terms()
+
+        if not terms:
+            return queryset
+
+        # Rank results instead of returning them in date order. A search for
+        # "python" should lead with jobs whose *title* says Python, not
+        # whichever matching row happens to be newest.
+        relevance = Value(0, output_field=IntegerField())
+
+        for term in terms:
+            relevance = relevance + Case(
+                When(title__icontains=term, then=Value(10)),
+                default=Value(0),
+                output_field=IntegerField(),
+            ) + Case(
+                When(company__icontains=term, then=Value(5)),
+                default=Value(0),
+                output_field=IntegerField(),
+            ) + Case(
+                When(requirements__icontains=term, then=Value(3)),
+                default=Value(0),
+                output_field=IntegerField(),
+            ) + Case(
+                When(description__icontains=term, then=Value(1)),
+                default=Value(0),
+                output_field=IntegerField(),
+            )
+
+        # Any term matching anywhere keeps the row - so a loosely related job
+        # still appears, just below the strong matches.
+        matches_any = Q()
+        for term in terms:
+            matches_any |= (
+                Q(title__icontains=term)
+                | Q(company__icontains=term)
+                | Q(requirements__icontains=term)
+                | Q(description__icontains=term)
+                | Q(location__icontains=term)
+            )
+
+        return (
+            queryset.filter(matches_any)
+            .annotate(relevance=relevance)
+            .order_by("-relevance", F("date_posted").desc(nulls_last=True))
+        )
 
     filterset_fields = [
         "source",
@@ -27,10 +126,9 @@ class JobListView(generics.ListAPIView):
         "is_remote",
     ]
 
-    search_fields = [
-        "title",
-        "company",
-    ]
+    # SearchFilter is bypassed for `search` (handled above with ranking), so
+    # it is intentionally not listed here.
+    search_fields = []
 
     ordering_fields = [
         "date_posted",
@@ -38,15 +136,18 @@ class JobListView(generics.ListAPIView):
         "salary_max",
     ]
 
-    ordering = ["-date_posted"]
+    # nulls_last keeps undated scraper rows off the front page. Postgres sorts
+    # NULL first on a plain DESC.
+    ordering = [F("date_posted").desc(nulls_last=True)]
 
 
 # Returns details for a single job.
 class JobDetailView(generics.RetrieveAPIView):
 
-    queryset = Job.objects.filter(is_active=True)
-
     serializer_class = JobSerializer
+
+    def get_queryset(self):
+        return jobs_with_match_score(self.request)
 
 
 # Triggers fetching jobs from all scrapers.
@@ -100,7 +201,7 @@ class AnalyzeJobView(APIView):
         """
         from rest_framework import status
         from .serializers import JobAnalyzeSerializer
-        from services.apply_ai_client import analyze_job
+        from services.apply_ai_client import ApplyAIError, analyze_job
 
         serializer = JobAnalyzeSerializer(data=request.data)
         if not serializer.is_valid():
@@ -109,7 +210,13 @@ class AnalyzeJobView(APIView):
         token = request.auth
         job_description = serializer.validated_data["job_description"]
 
-        result = analyze_job(token, job_description)
+        try:
+            result = analyze_job(token, job_description)
+        except ApplyAIError as exc:
+            return Response(
+                {"error": exc.detail},
+                status=exc.status_code,
+            )
 
         if result is None:
             return Response(
@@ -129,7 +236,7 @@ class GenerateResumeView(APIView):
         """
         from rest_framework import status
         from .serializers import JobAnalyzeSerializer
-        from services.apply_ai_client import generate_resume
+        from services.apply_ai_client import ApplyAIError, generate_resume
 
         serializer = JobAnalyzeSerializer(data=request.data)
         if not serializer.is_valid():
@@ -138,7 +245,13 @@ class GenerateResumeView(APIView):
         token = request.auth
         job_description = serializer.validated_data["job_description"]
 
-        result = generate_resume(token, job_description)
+        try:
+            result = generate_resume(token, job_description)
+        except ApplyAIError as exc:
+            return Response(
+                {"error": exc.detail},
+                status=exc.status_code,
+            )
 
         if result is None:
             return Response(
@@ -158,7 +271,7 @@ class GenerateEmailView(APIView):
         """
         from rest_framework import status
         from .serializers import EmailGenerateSerializer
-        from services.apply_ai_client import generate_email
+        from services.apply_ai_client import ApplyAIError, generate_email
 
         serializer = EmailGenerateSerializer(data=request.data)
         if not serializer.is_valid():
@@ -169,12 +282,18 @@ class GenerateEmailView(APIView):
         company_name = serializer.validated_data["company_name"]
         job_description = serializer.validated_data["job_description"]
 
-        result = generate_email(
-            token=token,
-            job_title=job_title,
-            company_name=company_name,
-            job_description=job_description,
-        )
+        try:
+            result = generate_email(
+                token=token,
+                job_title=job_title,
+                company_name=company_name,
+                job_description=job_description,
+            )
+        except ApplyAIError as exc:
+            return Response(
+                {"error": exc.detail},
+                status=exc.status_code,
+            )
 
         if result is None:
             return Response(
@@ -193,7 +312,7 @@ class AnalyzeJobImageView(APIView):
         POST /api/jobs/analyze-image/
         """
         from rest_framework import status
-        from services.apply_ai_client import analyze_job_from_image
+        from services.apply_ai_client import ApplyAIError, analyze_job_from_image
 
         token = request.auth
         if not token:
@@ -236,11 +355,17 @@ class AnalyzeJobImageView(APIView):
         image_bytes = uploaded_file.read()
         media_type = valid_types[content_type]
 
-        result = analyze_job_from_image(
-            token=token,
-            image_bytes=image_bytes,
-            image_media_type=media_type
-        )
+        try:
+            result = analyze_job_from_image(
+                token=token,
+                image_bytes=image_bytes,
+                image_media_type=media_type
+            )
+        except ApplyAIError as exc:
+            return Response(
+                {"error": exc.detail},
+                status=exc.status_code,
+            )
 
         if result is None:
             return Response(

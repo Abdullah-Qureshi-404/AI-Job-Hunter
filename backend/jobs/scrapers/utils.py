@@ -151,3 +151,84 @@ def extract_country(location):
         return ""
 
     return location.split(",")[-1].strip()
+
+# Section headings that introduce the requirements/qualifications part of a
+# job posting. Matched case-insensitively at the start of a line.
+REQUIREMENT_HEADINGS = (
+    "requirement",
+    "qualification",
+    "what you need",
+    "what we are looking for",
+    "what we're looking for",
+    "who you are",
+    "skills",
+    "must have",
+    "must-have",
+    "you have",
+    "you should have",
+    "minimum qualification",
+    "basic qualification",
+    "experience required",
+)
+
+# Headings that mark the END of the requirements section.
+NEXT_SECTION_HEADINGS = (
+    "benefit",
+    "we offer",
+    "perks",
+    "compensation",
+    "salary",
+    "about us",
+    "about the company",
+    "how to apply",
+    "application process",
+    "equal opportunity",
+    "our culture",
+    "why join",
+)
+
+
+def _is_heading_for(line, headings):
+    stripped = line.strip().lstrip("#*-•> ").lower()
+
+    if not stripped or len(stripped) > 80:
+        return False
+
+    return any(stripped.startswith(word) for word in headings)
+
+
+def extract_requirements(description):
+    """
+    Pull the requirements/qualifications section out of a job description.
+
+    Scrapers receive one combined description from every upstream API, so the
+    requirements field would otherwise always be empty. Returns "" when no
+    recognisable section exists - better an honest empty value than a guess.
+    """
+
+    if not description:
+        return ""
+
+    lines = description.replace("\r\n", "\n").split("\n")
+
+    start = None
+
+    for index, line in enumerate(lines):
+        if _is_heading_for(line, REQUIREMENT_HEADINGS):
+            start = index + 1
+            break
+
+    if start is None:
+        return ""
+
+    collected = []
+
+    for line in lines[start:]:
+        if _is_heading_for(line, NEXT_SECTION_HEADINGS):
+            break
+        collected.append(line)
+
+    result = "\n".join(collected).strip()
+
+    # A couple of words is not a section worth showing.
+    return result if len(result) >= 30 else ""

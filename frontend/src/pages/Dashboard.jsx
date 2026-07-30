@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import MainLayout from '../components/layout/MainLayout';
 import StatCard from '../components/ui/StatCard';
 import JobCard from '../components/ui/JobCard';
-import { matchJobs, getJobs } from '../services/jobsApi';
+import { getMatches, matchJobs } from '../services/jobsApi';
 import { getProfile } from '../services/profileApi';
 import { getCVs } from '../services/resumeApi';
 
@@ -16,6 +16,8 @@ export default function Dashboard() {
   const [profile, setProfile] = useState(null);
   const [cvs, setCvs] = useState([]);
   const [matchedJobs, setMatchedJobs] = useState([]);
+  const [notice, setNotice] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -46,31 +48,18 @@ export default function Dashboard() {
           console.warn('Dashboard CVs fetch notice:', err);
         }
 
-        // Fetch Job Matches (or fallback to getJobs)
+        // Read previously computed matches. Recomputing is expensive and is
+        // now behind the explicit "Refresh matches" button below.
         try {
-          const matchData = await matchJobs();
-          if (isMounted && Array.isArray(matchData) && matchData.length > 0) {
-            setMatchedJobs(matchData);
-          } else {
-            // Fallback to active jobs list
-            const allJobs = await getJobs();
-            if (isMounted) {
-              const formattedMatches = (Array.isArray(allJobs) ? allJobs : []).map((j, idx) => ({
-                job: j,
-                match_score: j.match_score || (94 - (idx * 6) > 60 ? 94 - (idx * 6) : 75),
-              }));
-              setMatchedJobs(formattedMatches);
-            }
-          }
-        } catch {
-          // If matcher endpoint errors (e.g. no profile skills extracted yet), fallback to getJobs
-          const allJobs = await getJobs();
+          const { results } = await getMatches();
           if (isMounted) {
-            const formattedMatches = (Array.isArray(allJobs) ? allJobs : []).map((j, idx) => ({
-              job: j,
-              match_score: j.match_score || (94 - (idx * 6) > 60 ? 94 - (idx * 6) : 75),
-            }));
-            setMatchedJobs(formattedMatches);
+            setMatchedJobs(results);
+          }
+        } catch (err) {
+          console.warn('Dashboard match fetch notice:', err);
+          if (isMounted) {
+            setMatchedJobs([]);
+            setError('Could not load your job matches.');
           }
         }
       } catch (err) {
@@ -92,6 +81,26 @@ export default function Dashboard() {
     };
   }, []);
 
+  const handleRefreshMatches = async () => {
+    setRefreshing(true);
+    setError(null);
+    setNotice(null);
+
+    try {
+      const { results, degraded, detail } = await matchJobs();
+      setMatchedJobs(results);
+      if (degraded) {
+        setNotice(detail || 'Apply AI is unavailable - matched using your profile skills.');
+      }
+    } catch (err) {
+      console.error('Failed to refresh matches:', err);
+      const message = err?.response?.data?.error;
+      setError(message || 'Could not refresh job matches.');
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   // Compute Stat Card values
   const totalMatched = matchedJobs.length;
   const topMatchScore = matchedJobs.length > 0
@@ -100,9 +109,8 @@ export default function Dashboard() {
 
   const stats = [
     { label: 'Jobs Matched', value: loading ? '...' : `${totalMatched}`, color: '#7c6ff7' },
-    { label: 'Top Match', value: loading ? '...' : `${topMatchScore || 94}%`, color: '#4caf65' },
+    { label: 'Top Match', value: loading ? '...' : (topMatchScore ? `${topMatchScore}%` : '—'), color: '#4caf65' },
     { label: 'Resumes', value: loading ? '...' : `${cvs.length}`, color: '#e8a838' },
-    { label: 'Emails Sent', value: '12', color: '#3b82f6' },
   ];
 
   return (
@@ -125,10 +133,16 @@ export default function Dashboard() {
         </div>
       )}
 
+      {notice && (
+        <div style={{ color: '#e8a838', background: 'rgba(232,168,56,0.1)', padding: '12px 16px', borderRadius: 8, fontSize: 13, marginBottom: 20 }}>
+          {notice}
+        </div>
+      )}
+
       {/* Stats Row */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(4, 1fr)',
+        gridTemplateColumns: `repeat(${stats.length}, 1fr)`,
         gap: '16px',
         marginBottom: '32px',
       }}>
@@ -159,6 +173,24 @@ export default function Dashboard() {
           }}>
             Top Matches
           </h2>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          <button
+            onClick={handleRefreshMatches}
+            disabled={refreshing}
+            style={{
+              background: 'none',
+              border: '1px solid #3a3a4a',
+              borderRadius: 6,
+              padding: '5px 12px',
+              color: refreshing ? '#6b6b80' : '#9090a8',
+              fontSize: '12px',
+              fontWeight: 500,
+              cursor: refreshing ? 'default' : 'pointer',
+              fontFamily: "'Inter', sans-serif",
+            }}
+          >
+            {refreshing ? 'Refreshing…' : 'Refresh matches'}
+          </button>
           <button
             onClick={() => navigate('/jobs')}
             style={{
@@ -176,6 +208,7 @@ export default function Dashboard() {
           >
             View All →
           </button>
+          </div>
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -184,10 +217,12 @@ export default function Dashboard() {
               Loading top matches...
             </div>
           ) : matchedJobs.length > 0 ? (
-            matchedJobs.slice(0, 3).map((item, idx) => {
+            matchedJobs.slice(0, 3).map((item) => {
               const job = item.job || item;
-              const score = Math.round(item.match_score || job.match_score || 85);
-              const isTop = score >= 85 || idx === 0;
+              const score = item.match_score != null
+                ? Math.round(item.match_score)
+                : (job.match_score != null ? Math.round(job.match_score) : null);
+              const isTop = score != null && score >= 85;
 
               const tags = [];
               if (job.is_remote) tags.push('Remote');
@@ -209,7 +244,7 @@ export default function Dashboard() {
             })
           ) : (
             <div style={{ textAlign: 'center', color: '#6b6b80', padding: '30px 0' }}>
-              No matched jobs found. Explore job listings or update your profile.
+              No matched jobs yet. Upload a resume on the Resumes page, then refresh.
             </div>
           )}
         </div>

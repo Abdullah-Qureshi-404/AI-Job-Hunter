@@ -9,11 +9,13 @@ export default function JobCard({
   matchScore,
   isTopMatch = false,
   onClick,
+  onMouseEnter,
 }) {
   return (
     <div
       className={`job-card${isTopMatch ? ' job-card--top-match' : ''}`}
       onClick={onClick}
+      onMouseEnter={onMouseEnter}
       role="button"
       tabIndex={0}
       onKeyDown={(e) => e.key === 'Enter' && onClick?.()}

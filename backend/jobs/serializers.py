@@ -2,8 +2,15 @@ from rest_framework import serializers
 from .models import Job
 
 
+# match_score is annotated onto the queryset per requesting user (see
+# jobs.views.jobs_with_match_score). It is null when the user has no computed
+# match for that job - clients must render that as "no score", not invent one.
+
+
 # Serializer for complete job details.
 class JobSerializer(serializers.ModelSerializer):
+
+    match_score = serializers.FloatField(read_only=True, allow_null=True, required=False)
 
     class Meta:
 
@@ -15,6 +22,8 @@ class JobSerializer(serializers.ModelSerializer):
 # Serializer used when listing many jobs.
 class JobListSerializer(serializers.ModelSerializer):
 
+    match_score = serializers.FloatField(read_only=True, allow_null=True, required=False)
+
     class Meta:
 
         model = Job
@@ -24,10 +33,15 @@ class JobListSerializer(serializers.ModelSerializer):
             "title",
             "company",
             "location",
+            "country",
             "job_type",
             "source",
             "date_posted",
             "is_remote",
+            "salary_min",
+            "salary_max",
+            "currency",
+            "match_score",
         ]
 
 

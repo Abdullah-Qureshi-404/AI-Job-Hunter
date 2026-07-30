@@ -6,16 +6,18 @@ import {
   HiOutlineCloudUpload,
 } from 'react-icons/hi';
 import MainLayout from '../components/layout/MainLayout';
+import ConfirmDialog from '../components/ui/ConfirmDialog';
 import { getCVs, uploadCV, deleteCV } from '../services/resumeApi';
-import { getProfile } from '../services/profileApi';
+import { parseApiError } from '../services/api';
 import './Resumes.css';
 
 export default function Resumes() {
   const [cvs, setCvs] = useState([]);
-  const [profileId, setProfileId] = useState(1);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState(null);
+  const [pendingDelete, setPendingDelete] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   const fileInputRef = useRef(null);
 
@@ -23,17 +25,6 @@ export default function Resumes() {
     try {
       setLoading(true);
       setError(null);
-
-      // Fetch profile to obtain correct profile ID
-      try {
-        const profData = await getProfile();
-        const pId = Array.isArray(profData) && profData.length > 0
-          ? profData[0].id
-          : (profData?.id || 1);
-        setProfileId(pId);
-      } catch {
-        setProfileId(1);
-      }
 
       const data = await getCVs();
       setCvs(Array.isArray(data) ? data : []);
@@ -61,32 +52,62 @@ export default function Resumes() {
       setUploading(true);
       setError(null);
 
+      // No `profile` field: the server resolves the owner from the auth
+      // token. Sending a client-chosen id would attach the CV to the wrong
+      // account.
       const formData = new FormData();
-      formData.append('profile', profileId);
       formData.append('label', file.name.replace(/\.pdf$/i, ''));
       formData.append('file', file);
 
-      await uploadCV(formData);
-      await fetchCVs();
+      const newCv = await uploadCV(formData);
+
+      // Surface the Apply AI mirror failure instead of silently dropping it.
+      if (newCv?.apply_ai_warning) {
+        setError(newCv.apply_ai_warning);
+      }
+
+      // The upload response is the new row, so prepend it rather than
+      // re-downloading the whole list.
+      if (newCv?.id) {
+        setCvs((rows) => [newCv, ...rows.filter((cv) => cv.id !== newCv.id)]);
+      } else {
+        await fetchCVs();
+      }
     } catch (err) {
       console.error('Failed to upload CV:', err);
-      setError('Failed to upload resume. Please check backend connection.');
+      setError(parseApiError(err) || 'Failed to upload resume. Please check backend connection.');
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
 
-  const handleDelete = async (id, title) => {
-    if (!window.confirm(`Are you sure you want to delete "${title}"?`)) return;
+  const requestDelete = (id, title) => setPendingDelete({ id, title });
+
+  const confirmDelete = async () => {
+    if (!pendingDelete) return;
+
+    const { id } = pendingDelete;
+    const previous = cvs;
+
+    setDeleting(true);
+    setError(null);
+
+    // Drop the row immediately. The list is already correct locally, so
+    // re-fetching everything just to remove one item made deletion feel like
+    // a page reload.
+    setCvs((rows) => rows.filter((cv) => cv.id !== id));
 
     try {
-      setError(null);
       await deleteCV(id);
-      await fetchCVs();
+      setPendingDelete(null);
     } catch (err) {
       console.error(`Failed to delete CV ${id}:`, err);
-      setError('Failed to delete resume. Please try again.');
+      setCvs(previous); // put it back
+      setError(parseApiError(err) || 'Failed to delete resume. Please try again.');
+      setPendingDelete(null);
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -122,7 +143,11 @@ export default function Resumes() {
   };
 
   return (
-    <MainLayout title="My Resumes" primaryButton="Upload Resume">
+    <MainLayout
+      title="My Resumes"
+      primaryButton="Upload Resume"
+      onPrimaryClick={() => fileInputRef.current?.click()}
+    >
       <div className="resumes-container">
         {/* Hidden File Input */}
         <input
@@ -187,7 +212,7 @@ export default function Resumes() {
                     type="button"
                     className="resume-icon-btn delete"
                     aria-label="Delete resume"
-                    onClick={() => handleDelete(res.id, res.label)}
+                    onClick={() => requestDelete(res.id, res.label)}
                   >
                     <HiOutlineTrash />
                   </button>
@@ -215,6 +240,20 @@ export default function Resumes() {
           <p className="resumes-dropzone-subtext">PDF only · Max 10MB</p>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={Boolean(pendingDelete)}
+        title="Delete resume?"
+        message={
+          pendingDelete
+            ? `"${pendingDelete.title}" will be permanently removed, along with its entries in the AI search index.`
+            : ''
+        }
+        confirmLabel="Delete resume"
+        busy={deleting}
+        onConfirm={confirmDelete}
+        onCancel={() => setPendingDelete(null)}
+      />
     </MainLayout>
   );
 }

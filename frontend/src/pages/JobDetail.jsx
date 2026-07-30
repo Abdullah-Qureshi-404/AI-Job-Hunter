@@ -8,11 +8,12 @@ import {
   HiOutlineBookmark,
   HiBookmark,
   HiCheckCircle,
-  HiXCircle,
   HiArrowTopRightOnSquare,
 } from 'react-icons/hi2';
 import MainLayout from '../components/layout/MainLayout';
 import MatchBadge from '../components/ui/MatchBadge';
+import JobDescription from '../components/ui/JobDescription';
+import { isJobSaved, toggleSavedJob } from '../services/savedJobs';
 import { getJobDetail } from '../services/jobsApi';
 import './JobDetail.css';
 
@@ -22,7 +23,7 @@ export default function JobDetail() {
   const [job, setJob] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [isSaved, setIsSaved] = useState(false);
+  const [isSaved, setIsSaved] = useState(() => isJobSaved(id));
 
   useEffect(() => {
     let isMounted = true;
@@ -112,37 +113,11 @@ export default function JobDetail() {
     }
   }
 
-  // Extract skills from requirements or fallback to defaults
-  let matchedSkills = ['Python', 'Django', 'PostgreSQL', 'REST APIs'];
-  let unmatchedSkills = ['AWS', 'Docker', 'Redis'];
-
-  if (job.requirements && typeof job.requirements === 'string') {
-    const parsed = job.requirements.split(/[,;•\n]/).map(s => s.trim()).filter(Boolean);
-    if (parsed.length > 0) {
-      const splitIdx = Math.max(1, Math.ceil(parsed.length * 0.6));
-      matchedSkills = parsed.slice(0, splitIdx);
-      unmatchedSkills = parsed.slice(splitIdx);
-    }
-  }
-
-  // Parse responsibilities or split description
-  let responsibilities = [
-    'Design, build, and maintain efficient, reusable, and reliable Python code.',
-    'Architect and implement scalable backend APIs that handle sub-second latency.',
-    'Collaborate with cross-functional product and engineering teams.',
-    'Optimize database queries and schema designs to ensure high throughput.',
-    'Participate in code reviews and drive engineering best practices.',
-  ];
-
-  if (job.description && typeof job.description === 'string') {
-    const sentences = job.description
-      .split(/(?<=[.!?])\s+/)
-      .map(s => s.trim())
-      .filter(s => s.length > 20);
-    if (sentences.length >= 3) {
-      responsibilities = sentences.slice(0, 5);
-    }
-  }
+  // Requirements exactly as scraped. We deliberately do not split these into
+  // "matched" and "unmatched" - nothing here is compared against the user's
+  // skills, so any such split would be invented.
+  const hasRequirements = typeof job.requirements === 'string'
+    && job.requirements.trim().length > 0;
 
   return (
     <MainLayout title="Job Details">
@@ -179,12 +154,12 @@ export default function JobDetail() {
                 className="jobdetail-btn-apply"
                 onClick={() => navigate(`/apply/${id}`)}
               >
-                Apply Now
+                Build Resume &amp; Email
               </button>
               <button
                 type="button"
                 className={`jobdetail-btn-save${isSaved ? ' saved' : ''}`}
-                onClick={() => setIsSaved(!isSaved)}
+                onClick={() => setIsSaved(toggleSavedJob(job))}
               >
                 {isSaved ? <HiBookmark /> : <HiOutlineBookmark />}
                 {isSaved ? 'Saved' : 'Save'}
@@ -197,65 +172,31 @@ export default function JobDetail() {
                   className="jobdetail-btn-save"
                   style={{ textDecoration: 'none' }}
                 >
-                  <HiArrowTopRightOnSquare /> Source
+                  <HiArrowTopRightOnSquare /> Apply Link
                 </a>
               )}
             </div>
           </div>
 
-          <MatchBadge percentage={job.match_score || 94} size={64} />
+          <MatchBadge percentage={job.match_score ?? null} size={64} />
         </div>
 
-        {/* Required Skills Card */}
-        <div className="jobdetail-card">
-          <h2 className="jobdetail-section-title">Required Skills & Match</h2>
-
-          <div className="jobdetail-skills-group">
-            <p className="jobdetail-skills-label">
-              <HiCheckCircle style={{ color: '#7c6ff7' }} /> Matched Skills ({matchedSkills.length})
-            </p>
-            <div className="jobdetail-skills-chips">
-              {matchedSkills.map((skill, i) => (
-                <span key={`${skill}-${i}`} className="jobdetail-skill-chip matched">
-                  <HiCheckCircle /> {skill}
-                </span>
-              ))}
-            </div>
+        {/* Requirements - hidden entirely when the listing has none, rather
+            than showing an empty card on the majority of jobs. */}
+        {hasRequirements && (
+          <div className="jobdetail-card">
+            <h2 className="jobdetail-section-title">Requirements</h2>
+            <JobDescription text={job.requirements} emptyMessage="" />
           </div>
-
-          {unmatchedSkills.length > 0 && (
-            <div className="jobdetail-skills-group" style={{ marginTop: 16 }}>
-              <p className="jobdetail-skills-label">
-                <HiXCircle style={{ color: '#9090a8' }} /> Unmatched Skills ({unmatchedSkills.length})
-              </p>
-              <div className="jobdetail-skills-chips">
-                {unmatchedSkills.map((skill, i) => (
-                  <span key={`${skill}-${i}`} className="jobdetail-skill-chip unmatched">
-                    <HiXCircle /> {skill}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
+        )}
 
         {/* Job Description Card */}
         <div className="jobdetail-card">
           <h2 className="jobdetail-section-title">Job Description</h2>
-          <p className="jobdetail-description-text">
-            {job.description || 'No detailed description provided for this position.'}
-          </p>
-
-          <h2 className="jobdetail-section-title" style={{ fontSize: 14, marginTop: 20 }}>
-            Key Responsibilities / Details
-          </h2>
-          <ul className="jobdetail-list">
-            {responsibilities.map((resp, i) => (
-              <li key={i} className="jobdetail-list-item">
-                {resp}
-              </li>
-            ))}
-          </ul>
+          <JobDescription
+            text={job.description}
+            emptyMessage="No detailed description provided for this position."
+          />
         </div>
       </div>
     </MainLayout>

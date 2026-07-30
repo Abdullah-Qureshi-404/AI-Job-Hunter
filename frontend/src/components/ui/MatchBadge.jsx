@@ -1,13 +1,17 @@
 import './MatchBadge.css';
 
 export default function MatchBadge({ percentage, size = 44 }) {
-  const isHigh = percentage >= 70;
-  const color = isHigh ? '#7c6ff7' : '#6b6b80';
+  const hasScore = percentage !== null && percentage !== undefined && !Number.isNaN(Number(percentage));
+  const value = hasScore ? Number(percentage) : 0;
+  const isHigh = value >= 70;
+  const color = hasScore ? (isHigh ? '#7c6ff7' : '#6b6b80') : '#6b6b80';
   const trackColor = isHigh ? 'rgba(124, 111, 247, 0.15)' : 'rgba(107, 107, 128, 0.15)';
 
   const radius = (size - 6) / 2;
   const circumference = 2 * Math.PI * radius;
-  const strokeDashoffset = circumference - (percentage / 100) * circumference;
+  const strokeDashoffset = hasScore
+    ? circumference - (value / 100) * circumference
+    : circumference;
 
   return (
     <div className="match-badge" style={{ width: size, height: size }}>
@@ -40,7 +44,7 @@ export default function MatchBadge({ percentage, size = 44 }) {
         className="match-badge-text"
         style={{ color }}
       >
-        {percentage}%
+        {hasScore ? `${Math.round(value)}%` : '—'}
       </span>
     </div>
   );

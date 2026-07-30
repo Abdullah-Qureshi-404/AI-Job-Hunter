@@ -4,6 +4,8 @@ from rest_framework import authentication
 from rest_framework import exceptions
 from supabase import create_client, Client
 
+from core import jwt_verify
+
 
 class SupabaseUser:
     """
@@ -51,6 +53,24 @@ class SupabaseAuthentication(authentication.BaseAuthentication):
 
         token = parts[1]
 
+        # 1. Offline signature check. No network, ~0.1 ms.
+        try:
+            local = jwt_verify.verify_locally(token)
+        except jwt_verify.TokenError as error:
+            raise exceptions.AuthenticationFailed(str(error))
+
+        if local:
+            uid, email = local
+            return (SupabaseUser(supabase_uid=uid, email=email), token)
+
+        # 2. No JWT secret configured. Fall back to asking Supabase, but only
+        #    once per token per TTL - otherwise every request pays ~515 ms.
+        cached = jwt_verify.cache_get(token)
+
+        if cached:
+            uid, email = cached
+            return (SupabaseUser(supabase_uid=uid, email=email), token)
+
         try:
             client = self._get_supabase_client()
             response = client.auth.get_user(token)
@@ -58,12 +78,12 @@ class SupabaseAuthentication(authentication.BaseAuthentication):
             if not response or not response.user:
                 raise exceptions.AuthenticationFailed("Invalid authentication token")
 
-            user = SupabaseUser(
-                supabase_uid=response.user.id,
-                email=response.user.email or ""
-            )
+            value = (response.user.id, response.user.email or "")
 
-            return (user, token)
+            jwt_verify.cache_put(token, value, jwt_verify.token_expiry(token))
+
+            uid, email = value
+            return (SupabaseUser(supabase_uid=uid, email=email), token)
 
         except exceptions.AuthenticationFailed:
             raise

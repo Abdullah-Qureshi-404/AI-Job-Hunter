@@ -2,20 +2,13 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  FcGoogle,
-} from 'react-icons/fc';
-import {
-  FaFacebookF,
-  FaGithub,
-  FaLinkedinIn,
-} from 'react-icons/fa';
-import {
   HiOutlineMail,
   HiOutlineLockClosed,
   HiOutlineUser,
 } from 'react-icons/hi';
 import { AiOutlineEye, AiOutlineEyeInvisible } from 'react-icons/ai';
 import { useAuth } from '../context/AuthContext';
+import { isSupabaseConfigured } from '../lib/supabase';
 import './Auth.css';
 
 /* ─────────────────────────────────────────────
@@ -42,16 +35,6 @@ const formTransition = {
 };
 
 /* ─────────────────────────────────────────────
-   Social button data
-   ───────────────────────────────────────────── */
-const socialButtons = [
-  { icon: <FcGoogle />, label: 'Google' },
-  { icon: <FaFacebookF style={{ color: '#4267B2' }} />, label: 'Facebook' },
-  { icon: <FaGithub style={{ color: '#e8e8f0' }} />, label: 'GitHub' },
-  { icon: <FaLinkedinIn style={{ color: '#0A66C2' }} />, label: 'LinkedIn' },
-];
-
-/* ─────────────────────────────────────────────
    Auth Component
    ───────────────────────────────────────────── */
 export default function Auth() {
@@ -65,6 +48,28 @@ export default function Auth() {
 
   return (
     <div className="auth-page">
+      {!isSupabaseConfigured && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 16,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 50,
+            maxWidth: 560,
+            background: 'rgba(255, 107, 107, 0.12)',
+            border: '1px solid rgba(255, 107, 107, 0.45)',
+            color: '#ff8f8f',
+            padding: '10px 14px',
+            borderRadius: 8,
+            fontSize: 13,
+            textAlign: 'center',
+          }}
+        >
+          Set <code>VITE_SUPABASE_ANON_KEY</code> to your Supabase <strong>anon</strong> key
+          (Dashboard → Project Settings → API). Do not use the service_role key.
+        </div>
+      )}
       <div className="auth-card">
 
         {/* ── LEFT HALF ──────────────── */}
@@ -203,20 +208,7 @@ function LoginForm({ showPassword, setShowPassword, toggle }) {
     <form onSubmit={handleLogin}>
       <h2 className="form-title">Sign In</h2>
 
-      <div className="social-row">
-        {socialButtons.map((s) => (
-          <button
-            key={s.label}
-            className="social-btn"
-            type="button"
-            aria-label={`Sign in with ${s.label}`}
-          >
-            {s.icon}
-          </button>
-        ))}
-      </div>
-
-      <p className="divider">or use your email password</p>
+      <p className="divider">use your email and password</p>
 
       {error && <p className="auth-error">{error}</p>}
 
@@ -316,20 +308,7 @@ function SignupForm({ showPassword, setShowPassword, toggle }) {
     <form onSubmit={handleSignup}>
       <h2 className="form-title">Create Account</h2>
 
-      <div className="social-row">
-        {socialButtons.map((s) => (
-          <button
-            key={s.label}
-            className="social-btn"
-            type="button"
-            aria-label={`Sign up with ${s.label}`}
-          >
-            {s.icon}
-          </button>
-        ))}
-      </div>
-
-      <p className="divider">or use your email for registration</p>
+      <p className="divider">use your email to register</p>
 
       {error && <p className="auth-error">{error}</p>}
       {success && <p className="auth-success">{success}</p>}
