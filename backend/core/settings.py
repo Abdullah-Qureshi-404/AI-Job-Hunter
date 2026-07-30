@@ -10,7 +10,9 @@ This settings file is configured for:
 
 from pathlib import Path
 import os
+import sys
 
+from django.core.exceptions import ImproperlyConfigured
 from dotenv import load_dotenv
 import dj_database_url
 
@@ -19,9 +21,18 @@ import dj_database_url
 # Load environment variables
 # ---------------------------------------------------
 
-load_dotenv()
-
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Explicit path: relying on working-directory discovery meant running
+# manage.py from the repo root silently loaded nothing, then crashed on a
+# missing DATABASE_URL with an unrelated traceback.
+load_dotenv(BASE_DIR / ".env", interpolate=False)
+
+# Include Apply AI backend in sys.path for services.apply_ai_client import
+APPLY_AI_BACKEND = BASE_DIR.parent.parent / "Apply AI" / "backend"
+if APPLY_AI_BACKEND.exists() and str(APPLY_AI_BACKEND) not in sys.path:
+    sys.path.append(str(APPLY_AI_BACKEND))
+
 
 
 # ---------------------------------------------------
@@ -63,8 +74,6 @@ INSTALLED_APPS = [
     "jobs",
     "profiles",
     "matcher",
-    "outreach",
-    "tracker",
 ]
 
 
@@ -118,10 +127,16 @@ WSGI_APPLICATION = "core.wsgi.application"
 # Database (Supabase PostgreSQL)
 # ---------------------------------------------------
 
-DATABASES = {
-    "default": dj_database_url.parse(
-        os.getenv("DATABASE_URL")
+DATABASE_URL = os.getenv("DATABASE_URL")
+
+if not DATABASE_URL:
+    raise ImproperlyConfigured(
+        "DATABASE_URL is not set. Copy backend/.env.example to backend/.env "
+        "and fill in your Supabase connection string."
     )
+
+DATABASES = {
+    "default": dj_database_url.parse(DATABASE_URL)
 }
 
 
@@ -191,7 +206,29 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # CORS Settings
 # ---------------------------------------------------
 
-CORS_ALLOW_ALL_ORIGINS = True
+# Wide open in development only. In production set CORS_ALLOWED_ORIGINS to a
+# comma-separated list of your frontend origins.
+_cors_origins = os.getenv("CORS_ALLOWED_ORIGINS", "")
+
+if _cors_origins:
+    CORS_ALLOWED_ORIGINS = [
+        origin.strip() for origin in _cors_origins.split(",") if origin.strip()
+    ]
+elif DEBUG:
+    CORS_ALLOW_ALL_ORIGINS = True
+else:
+    raise ImproperlyConfigured(
+        "CORS_ALLOWED_ORIGINS must be set when DEBUG is False."
+    )
+
+
+# ---------------------------------------------------
+# Supabase Settings
+# ---------------------------------------------------
+
+SUPABASE_URL = os.getenv("SUPABASE_URL", "")
+
+SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY", "")
 
 
 # ---------------------------------------------------
@@ -201,12 +238,11 @@ CORS_ALLOW_ALL_ORIGINS = True
 REST_FRAMEWORK = {
 
     "DEFAULT_AUTHENTICATION_CLASSES": [
-        "rest_framework.authentication.SessionAuthentication",
-        "rest_framework.authentication.BasicAuthentication",
+        "core.authentication.SupabaseAuthentication",
     ],
 
     "DEFAULT_PERMISSION_CLASSES": [
-        "rest_framework.permissions.AllowAny",
+        "rest_framework.permissions.IsAuthenticated",
     ],
 
     "DEFAULT_FILTER_BACKENDS": [
@@ -219,4 +255,33 @@ REST_FRAMEWORK = {
         "rest_framework.pagination.PageNumberPagination",
 
     "PAGE_SIZE": 20,
+}
+
+
+# ---------------------------------------------------
+# Logging
+# ---------------------------------------------------
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "verbose": {
+            "format": "[{asctime}] [{levelname}] [{name}] {message}",
+            "style": "{",
+        },
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "verbose",
+        },
+    },
+    "loggers": {
+        "jobs": {
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": False,
+        },
+    },
 }

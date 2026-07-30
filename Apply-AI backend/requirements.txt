@@ -1,0 +1,64 @@
+# ==========================================================
+# ApplyAI - Backend Requirements
+# ==========================================================
+# This file contains all Python packages required to run
+# the ApplyAI backend.
+#
+# Install:
+# pip install -r requirements.txt
+# ==========================================================
+
+# -------------------------
+# FastAPI Backend
+# -------------------------
+fastapi==0.116.1
+uvicorn[standard]==0.35.0
+
+# -------------------------
+# Environment Variables
+# -------------------------
+python-dotenv==1.1.1
+
+# -------------------------
+# Data Validation
+# -------------------------
+pydantic==2.11.7
+
+# -------------------------
+# File Uploads
+# -------------------------
+python-multipart==0.0.20
+
+# -------------------------
+# Supabase
+# -------------------------
+supabase==2.18.1
+
+# -------------------------
+# Pinecone Vector Database
+# -------------------------
+pinecone==7.3.0
+
+# -------------------------
+# Voyage AI Embeddings
+# -------------------------
+voyageai==0.3.5
+
+# -------------------------
+# Groq LLM
+# -------------------------
+groq==0.31.0
+
+# -------------------------
+# PDF Parsing
+# -------------------------
+pypdf==6.0.0
+
+# -------------------------
+# Async Support
+# -------------------------
+httpx==0.28.1
+
+# Removed as unused (nothing imports them): python-docx, reportlab,
+# google-api-python-client, google-auth, google-auth-oauthlib, requests.
+# Re-add if DOCX/PDF export or the Gmail integration is actually built.

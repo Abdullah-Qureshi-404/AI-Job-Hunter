@@ -6,8 +6,7 @@ This file performs shared validation and cleanup before saving.
 """
 
 from datetime import datetime
-import math
-from .utils import safe_int, safe_string
+from .utils import safe_int, safe_string, clean_html, extract_requirements
 
 
 # This function checks if a job is fully remote.
@@ -71,6 +70,39 @@ def clean_date(date_value):
         return None
     
 
+# This function maps raw job type strings to valid project job type choices.
+def normalize_job_type(raw_value):
+    """
+    Converts raw job type values from different APIs
+    into valid project job types.
+    """
+
+    if not raw_value:
+        return "full-time"
+
+    value = str(raw_value).lower().strip()
+
+    if any(x in value for x in ["full_time", "fulltime", "full time", "permanent"]):
+        return "full-time"
+
+    if any(x in value for x in ["part_time", "parttime", "part time"]):
+        return "part-time"
+
+    if any(x in value for x in ["contract", "contractor"]):
+        return "freelance"
+
+    if any(x in value for x in ["intern", "internship", "graduate"]):
+        return "internship"
+
+    if any(x in value for x in ["freelance", "gig"]):
+        return "freelance"
+
+    if "remote" in value:
+        return "remote"
+
+    return "full-time"
+
+
 # This function converts a mapped job into our Job model format.
 def normalize_job(job):
 
@@ -86,21 +118,31 @@ def normalize_job(job):
     if not job.get("source_id"):
         return None
 
+    description = clean_html(job.get("description", ""))
+
+    # Every upstream API returns a single combined description, so each
+    # scraper passes requirements="". Recover the requirements section from
+    # the description instead of leaving the field permanently empty.
+    requirements = safe_string(job.get("requirements")) or ""
+
+    if not requirements:
+        requirements = extract_requirements(description)
+
     normalized_job = {
 
         "title": safe_string(job.get("title"))[:255],
-        
+
         "company": company[:255],
 
         "location": (safe_string(job.get("location")) or "Remote")[:255],
 
         "country": (safe_string(job.get("country")) or "")[:255],
 
-        "job_type": safe_string(job.get("job_type")) or "remote",
+        "job_type": normalize_job_type(job.get("job_type", "")),
 
-        "description": safe_string(job.get("description")) or "",
+        "description": description,
 
-        "requirements": safe_string(job.get("requirements")) or "",
+        "requirements": requirements,
 
         "salary_min": safe_int(job.get("salary_min")),
 

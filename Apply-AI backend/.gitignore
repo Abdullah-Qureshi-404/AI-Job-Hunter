@@ -1,0 +1,96 @@
+# =========================
+# Python
+# =========================
+
+__pycache__/
+*.py[cod]
+*$py.class
+
+*.so
+.Python
+
+# Virtual Environment
+venv/
+env/
+.venv/
+
+# =========================
+# Environment Variables
+# =========================
+
+.env
+.env.*
+
+# Keep example file
+!.env.example
+
+
+# =========================
+# IDE
+# =========================
+
+.vscode/
+.idea/
+
+# =========================
+# OS Files
+# =========================
+
+.DS_Store
+Thumbs.db
+
+
+# =========================
+# Logs
+# =========================
+
+*.log
+
+
+# =========================
+# Testing
+# =========================
+
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Ad-hoc test scripts often contain real credentials - never commit them.
+test_*.py
+*_test.py
+
+
+# =========================
+# Database / Local Storage
+# =========================
+
+*.sqlite3
+*.db
+
+
+# =========================
+# Uploaded / Generated Files
+# =========================
+
+uploads/
+generated/
+storage/
+
+*.pdf
+*.docx
+
+
+# =========================
+# Jupyter
+# =========================
+
+.ipynb_checkpoints/
+
+
+# =========================
+# Build Files
+# =========================
+
+build/
+dist/
+*.egg-info/

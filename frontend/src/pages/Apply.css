@@ -1,0 +1,318 @@
+/* ========================================
+   Apply Page — Stylesheet
+   ======================================== */
+
+.apply-container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+/* ---------- Step Indicator ---------- */
+.apply-steps-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #111118;
+  border: 0.5px solid #2a2a3a;
+  border-radius: 12px;
+  padding: 16px 32px;
+  position: relative;
+}
+
+.apply-step-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  z-index: 1;
+}
+
+.apply-step-number {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 600;
+  color: white;
+  transition: all 0.3s ease;
+}
+
+.apply-step-number.completed {
+  background: #4caf65;
+}
+
+.apply-step-number.active {
+  background: #7c6ff7;
+  box-shadow: 0 0 12px rgba(124, 111, 247, 0.4);
+}
+
+.apply-step-number.inactive {
+  background: #1a1a2e;
+  border: 1px solid #2a2a3a;
+  color: #6b6b80;
+}
+
+.apply-step-label {
+  font-size: 13px;
+  font-weight: 500;
+  transition: color 0.3s ease;
+}
+
+.apply-step-label.completed {
+  color: #4caf65;
+}
+
+.apply-step-label.active {
+  color: #e8e8f0;
+}
+
+.apply-step-label.inactive {
+  color: #6b6b80;
+}
+
+.apply-step-line {
+  flex: 1;
+  height: 2px;
+  background: #2a2a3a;
+  margin: 0 16px;
+  transition: background 0.3s ease;
+}
+
+.apply-step-line.active {
+  background: #7c6ff7;
+}
+
+/* ---------- Main Form Card ---------- */
+.apply-card {
+  background: #111118;
+  border: 0.5px solid #2a2a3a;
+  border-radius: 12px;
+  padding: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.apply-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.apply-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #e8e8f0;
+  margin: 0 0 6px;
+  letter-spacing: -0.2px;
+}
+
+.apply-subtitle {
+  font-size: 13px;
+  color: #9090a8;
+  margin: 0;
+}
+
+/* ---------- Mode Selection Cards (Step 1) ---------- */
+.apply-mode-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.apply-mode-card {
+  background: #13131f;
+  border: 1px solid #2a2a3a;
+  border-radius: 10px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  color: #9090a8;
+}
+
+.apply-mode-card:hover {
+  border-color: #7c6ff7;
+  color: #e8e8f0;
+}
+
+.apply-mode-card.selected {
+  border-color: #7c6ff7;
+  background: #0f0f1a;
+  color: #7c6ff7;
+}
+
+.apply-mode-icon {
+  font-size: 28px;
+}
+
+.apply-mode-title {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* ---------- Input Area ---------- */
+.apply-textarea {
+  width: 100%;
+  min-height: 160px;
+  background: #1a1a2e;
+  border: 0.5px solid #2a2a3a;
+  border-radius: 8px;
+  padding: 14px;
+  color: #e8e8f0;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  line-height: 1.6;
+  outline: none;
+  resize: vertical;
+  box-sizing: border-box;
+  transition: border-color 0.25s ease;
+}
+
+.apply-textarea:focus {
+  border-color: #7c6ff7;
+}
+
+.apply-dropzone {
+  width: 100%;
+  height: 160px;
+  border: 2px dashed #2a2a3a;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: #6b6b80;
+  background: #1a1a2e;
+  cursor: pointer;
+  transition: border-color 0.25s ease, color 0.25s ease;
+  box-sizing: border-box;
+}
+
+.apply-dropzone:hover {
+  border-color: #7c6ff7;
+  color: #9090a8;
+}
+
+.apply-dropzone-icon {
+  font-size: 32px;
+  color: #7c6ff7;
+}
+
+/* ---------- ATS Badge (Step 2) ---------- */
+.apply-ats-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(76, 175, 101, 0.12);
+  border: 0.5px solid rgba(76, 175, 101, 0.3);
+  color: #4caf65;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 6px 14px;
+  border-radius: 20px;
+}
+
+/* ---------- Resume Preview Box (Step 2) ---------- */
+.apply-preview-box {
+  background: #1a1a2e;
+  border: 0.5px solid #2a2a3a;
+  border-radius: 8px;
+  padding: 18px;
+  font-size: 12px;
+  color: #d1d1e0;
+  line-height: 1.7;
+  white-space: pre-line;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+/* ---------- Inputs (Step 3) ---------- */
+.apply-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.apply-input-label {
+  font-size: 12px;
+  color: #9090a8;
+  font-weight: 500;
+}
+
+.apply-input {
+  width: 100%;
+  height: 42px;
+  background: #1a1a2e;
+  border: 0.5px solid #2a2a3a;
+  border-radius: 8px;
+  padding: 0 14px;
+  color: #e8e8f0;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.25s ease;
+}
+
+.apply-input:focus {
+  border-color: #7c6ff7;
+}
+
+/* ---------- Button Actions Footer ---------- */
+.apply-footer-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 10px;
+}
+
+.apply-btn-next {
+  height: 40px;
+  padding: 0 24px;
+  border-radius: 8px;
+  background: #7c6ff7;
+  border: none;
+  color: white;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  transition: background 0.25s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.apply-btn-next:hover {
+  background: #6a5ee0;
+}
+
+.apply-btn-back {
+  height: 40px;
+  padding: 0 20px;
+  border-radius: 8px;
+  background: transparent;
+  border: 0.5px solid #2a2a3a;
+  color: #9090a8;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  transition: border-color 0.25s ease, color 0.25s ease;
+}
+
+.apply-btn-back:hover {
+  border-color: #7c6ff7;
+  color: #e8e8f0;
+}
