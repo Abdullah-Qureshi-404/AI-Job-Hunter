@@ -5,6 +5,7 @@ import {
   HiOutlinePaperAirplane,
   HiOutlineUser,
   HiOutlineDocumentText,
+  HiOutlineBookmark,
   HiOutlineLogout,
 } from 'react-icons/hi';
 import { useAuth } from '../../context/AuthContext';
@@ -13,6 +14,7 @@ import './Sidebar.css';
 const navItems = [
   { to: '/dashboard', label: 'Dashboard', icon: HiOutlineViewGrid },
   { to: '/jobs', label: 'Browse Jobs', icon: HiOutlineBriefcase },
+  { to: '/saved', label: 'Saved Jobs', icon: HiOutlineBookmark },
   { to: '/apply', label: 'Apply to Job', icon: HiOutlinePaperAirplane },
   { to: '/profile', label: 'Profile', icon: HiOutlineUser },
   { to: '/resumes', label: 'My Resumes', icon: HiOutlineDocumentText },

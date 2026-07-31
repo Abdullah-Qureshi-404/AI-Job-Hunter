@@ -36,7 +36,10 @@ function Editable({ value, onChange, tag: Tag = 'div', className, placeholder })
   );
 }
 
-export default function ResumeEditor({ content, header, onChange }) {
+// Render sections in the order they appear in the user's own resume.
+const DEFAULT_ORDER = ['summary', 'skills', 'experience', 'projects', 'education'];
+
+export default function ResumeEditor({ content, header, onChange, layout }) {
   const [data, setData] = useState(content);
 
   useEffect(() => setData(content), [content]);
@@ -61,14 +64,21 @@ export default function ResumeEditor({ content, header, onChange }) {
 
   if (!data) return null;
 
+  // Section order and typeface come from the uploaded resume when available.
+  const order = (layout?.section_order?.length ? layout.section_order : DEFAULT_ORDER)
+    .filter((key, i, arr) => arr.indexOf(key) === i);
+  const missing = DEFAULT_ORDER.filter((key) => !order.includes(key));
+  const sectionOrder = [...order, ...missing];
+  const fontClass = layout?.font_family === 'serif' ? 'resume-serif' : 'resume-sans';
+
   const experience = data.experience || [];
   const projects = data.projects || [];
   const skills = data.skills || [];
 
   return (
-    <div className="resume-sheet" id="resume-sheet">
+    <div className={`resume-sheet ${fontClass}`} id="resume-sheet">
       {/* Header */}
-      <header className="resume-header">
+      <header className="resume-header" style={{ textAlign: layout?.header_align === 'left' ? 'left' : 'center' }}>
         <Editable
           className="resume-name"
           value={header?.name || ''}

@@ -13,7 +13,7 @@ import {
 import MainLayout from '../components/layout/MainLayout';
 import MatchBadge from '../components/ui/MatchBadge';
 import JobDescription from '../components/ui/JobDescription';
-import { isJobSaved, toggleSavedJob } from '../services/savedJobs';
+import { getSavedJobs, toggleSavedJob } from '../services/savedJobs';
 import { getJobDetail } from '../services/jobsApi';
 import './JobDetail.css';
 
@@ -23,7 +23,25 @@ export default function JobDetail() {
   const [job, setJob] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [isSaved, setIsSaved] = useState(() => isJobSaved(id));
+  const [isSaved, setIsSaved] = useState(false);
+  const [savingBookmark, setSavingBookmark] = useState(false);
+
+  const handleToggleSave = async () => {
+    setSavingBookmark(true);
+    // Flip immediately; revert if the request fails.
+    const previous = isSaved;
+    setIsSaved(!previous);
+
+    try {
+      const nowSaved = await toggleSavedJob(id, previous);
+      setIsSaved(nowSaved);
+    } catch (err) {
+      console.error('Could not update saved job:', err);
+      setIsSaved(previous);
+    } finally {
+      setSavingBookmark(false);
+    }
+  };
 
   useEffect(() => {
     let isMounted = true;
@@ -41,6 +59,16 @@ export default function JobDetail() {
         const data = await getJobDetail(id);
         if (isMounted) {
           setJob(data);
+        }
+
+        // Cached after the first call, so this is usually free.
+        try {
+          const saved = await getSavedJobs();
+          if (isMounted) {
+            setIsSaved(saved.some((item) => String(item.job?.id) === String(id)));
+          }
+        } catch {
+          /* bookmark state is non-critical */
         }
       } catch (err) {
         if (isMounted) {
@@ -159,7 +187,8 @@ export default function JobDetail() {
               <button
                 type="button"
                 className={`jobdetail-btn-save${isSaved ? ' saved' : ''}`}
-                onClick={() => setIsSaved(toggleSavedJob(job))}
+                disabled={savingBookmark}
+                onClick={handleToggleSave}
               >
                 {isSaved ? <HiBookmark /> : <HiOutlineBookmark />}
                 {isSaved ? 'Saved' : 'Save'}
@@ -193,8 +222,11 @@ export default function JobDetail() {
         {/* Job Description Card */}
         <div className="jobdetail-card">
           <h2 className="jobdetail-section-title">Job Description</h2>
+          {/* description_formatted is the LLM-restructured copy produced
+              offline by `manage.py format_descriptions`. Its wording is
+              verified identical to the original; fall back when absent. */}
           <JobDescription
-            text={job.description}
+            text={job.description_formatted || job.description}
             emptyMessage="No detailed description provided for this position."
           />
         </div>

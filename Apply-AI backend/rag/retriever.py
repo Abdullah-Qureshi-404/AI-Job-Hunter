@@ -104,7 +104,9 @@ def search_chunks(
 
             vector=query_vector,
 
-            top_k=10,
+            # Chunks are now ~200 words instead of 800, so a resume produces
+            # roughly 4x more of them. Pull proportionally more candidates.
+            top_k=30,
 
             include_metadata=True,
 
@@ -119,7 +121,7 @@ def search_chunks(
 
         for item in result.matches:
 
-            if item.score >= 0.70:
+            if item.score >= 0.45:
 
                 chunks.append(
                     format_chunk(item)
@@ -127,7 +129,7 @@ def search_chunks(
 
 
         # fallback if no strong matches
-        if len(chunks) < 3:
+        if len(chunks) < 5:
 
 
             chunks = []
@@ -135,7 +137,7 @@ def search_chunks(
 
             for item in result.matches:
 
-                if item.score >= 0.50:
+                if item.score >= 0.30:
 
                     chunks.append(
                         format_chunk(item)

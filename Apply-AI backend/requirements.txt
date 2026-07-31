@@ -59,6 +59,12 @@ pypdf==6.0.0
 # -------------------------
 httpx==0.28.1
 
+# -------------------------
+# Offline JWT verification (ES256 via Supabase JWKS)
+# -------------------------
+PyJWT==2.13.0
+cryptography==49.0.0
+
 # Removed as unused (nothing imports them): python-docx, reportlab,
 # google-api-python-client, google-auth, google-auth-oauthlib, requests.
 # Re-add if DOCX/PDF export or the Gmail integration is actually built.

@@ -7,6 +7,8 @@ from .views import AnalyzeJobView
 from .views import GenerateResumeView
 from .views import GenerateEmailView
 from .views import AnalyzeJobImageView
+from .views import SavedJobListCreateView
+from .views import SavedJobDeleteView
 
 urlpatterns = [
 
@@ -14,6 +16,18 @@ urlpatterns = [
         "",
         JobListView.as_view(),
         name="job-list"
+    ),
+
+    # Declared before "<int:pk>/" so the literal path always wins.
+    path(
+        "saved/",
+        SavedJobListCreateView.as_view(),
+        name="saved-jobs",
+    ),
+    path(
+        "saved/<int:job_id>/",
+        SavedJobDeleteView.as_view(),
+        name="saved-job-delete",
     ),
 
     path(

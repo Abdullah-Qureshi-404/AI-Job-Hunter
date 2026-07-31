@@ -18,6 +18,7 @@ from typing import List
 
 from fastapi import (
     APIRouter,
+    BackgroundTasks,
     Depends,
     UploadFile,
     File,
@@ -31,6 +32,7 @@ from middleware.auth_guard import get_current_user
 from services.resume_service import (
     upload_resume,
     get_user_resumes,
+    get_resume_status,
     delete_resume,
 )
 
@@ -49,18 +51,36 @@ router = APIRouter()
     status_code=status.HTTP_201_CREATED,
 )
 def upload(
+    background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     resume_type: str = Form(...),
     current_user: dict = Depends(get_current_user),
 ):
     """
     Upload a resume PDF.
+
+    Returns as soon as the file is stored. Embedding runs in the background;
+    poll GET /resumes/{resume_id}/status until is_embedded is true.
     """
 
     return upload_resume(
         user_id=current_user["user_id"],
         file=file,
         resume_type=resume_type,
+        background_tasks=background_tasks,
+    )
+
+
+@router.get("/{resume_id}/status")
+def resume_status(
+    resume_id: str,
+    current_user: dict = Depends(get_current_user),
+):
+    """Report whether background embedding has finished."""
+
+    return get_resume_status(
+        user_id=current_user["user_id"],
+        resume_id=resume_id,
     )
 
 
