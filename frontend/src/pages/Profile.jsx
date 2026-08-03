@@ -1,12 +1,11 @@
 import { useState, useEffect } from 'react';
-import { HiOutlineBriefcase, HiOutlineUser, HiOutlineGlobe, HiOutlineCurrencyDollar } from 'react-icons/hi';
+import { Briefcase, User, Globe, CircleDollarSign, FileText, Sparkles, Code, Target } from 'lucide-react';
 import MainLayout from '../components/layout/MainLayout';
 import { getProfile, createProfile } from '../services/profileApi';
 import { getCVs } from '../services/resumeApi';
 import { getMatches } from '../services/jobsApi';
 import { parseApiError } from '../services/api';
 import { useAuth } from '../context/AuthContext';
-import './Profile.css';
 
 const emptyForm = {
   name: '',
@@ -28,12 +27,9 @@ export default function Profile() {
   const [isCreating, setIsCreating] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
 
-  // Real counts, not placeholders.
   const [cvCount, setCvCount] = useState(null);
   const [matchCount, setMatchCount] = useState(null);
 
-  // Seeded from the signed-in account so users never create a profile under
-  // someone else's identity.
   const [formData, setFormData] = useState({
     ...emptyForm,
     name: user?.user_metadata?.full_name || '',
@@ -64,7 +60,6 @@ export default function Profile() {
     fetchProfileData();
   }, []);
 
-  // Keep the form seeded once the auth user resolves.
   useEffect(() => {
     setFormData((prev) => ({
       ...prev,
@@ -108,7 +103,6 @@ export default function Profile() {
     try {
       setIsCreating(true);
       setError(null);
-      // POST upserts server-side, so this saves both new and edited profiles.
       await createProfile(formData);
       setIsEditing(false);
       await fetchProfileData();
@@ -123,10 +117,8 @@ export default function Profile() {
   if (loading) {
     return (
       <MainLayout title="Profile">
-        <div className="profile-container">
-          <div className="profile-card" style={{ textAlign: 'center', color: '#9090a8', padding: 60 }}>
-            Loading profile...
-          </div>
+        <div className="glass-card p-12 text-center text-zinc-400 text-sm">
+          Loading profile...
         </div>
       </MainLayout>
     );
@@ -135,133 +127,132 @@ export default function Profile() {
   if (error && !profile && !isEditing) {
     return (
       <MainLayout title="Profile">
-        <div className="profile-container">
-          <div className="profile-card" style={{ textAlign: 'center', color: '#ff6b6b', padding: 60 }}>
-            {error}
-          </div>
+        <div className="glass-card p-12 text-center text-rose-400 font-semibold text-sm">
+          {error}
         </div>
       </MainLayout>
     );
   }
 
-  // Create / edit form
   if (!profile || isEditing) {
     return (
       <MainLayout title="Profile">
-        <div className="profile-container">
-          <div className="profile-card">
-            <h2 className="profile-section-title">
-              {isEditing ? 'Edit Your Profile' : 'Create Your Profile'}
-            </h2>
-            <p style={{ fontSize: 13, color: '#9090a8', margin: '0 0 16px' }}>
-              {isEditing
-                ? 'Update your details. These drive AI job matching.'
-                : 'No career profile found. Setup your profile details below to enable AI job matching.'}
-            </p>
+        <div className="space-y-6 max-w-2xl mx-auto">
+          <div className="glass-card p-6 md:p-8 space-y-6">
+            <div>
+              <h2 className="text-xl font-extrabold text-white tracking-tight">
+                {isEditing ? 'Edit Your Profile' : 'Create Your Profile'}
+              </h2>
+              <p className="text-xs text-zinc-400 font-medium mt-1">
+                {isEditing
+                  ? 'Update your details. These drive AI job matching.'
+                  : 'No career profile found. Setup your profile details below to enable AI job matching.'}
+              </p>
+            </div>
 
             {error && (
-              <div style={{ color: '#ff6b6b', background: 'rgba(255,107,107,0.1)', padding: '10px 14px', borderRadius: 6, fontSize: 12, marginBottom: 14, whiteSpace: 'pre-line' }}>
+              <div className="p-4 rounded-xl text-xs font-semibold text-rose-300 bg-rose-950/40 border border-rose-500/30">
                 {error}
               </div>
             )}
 
-            <form onSubmit={handleCreateProfile} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              <div>
-                <label style={{ fontSize: 12, color: '#9090a8', display: 'block', marginBottom: 4 }}>Full Name</label>
+            <form onSubmit={handleCreateProfile} className="space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-zinc-300">Full Name</label>
                 <input
                   type="text"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  style={{ width: '100%', height: 38, background: '#1a1a2e', border: '0.5px solid #2a2a3a', borderRadius: 6, color: '#e8e8f0', padding: '0 12px', boxSizing: 'border-box' }}
+                  className="w-full px-4 py-2.5 bg-black/40 border border-white/10 rounded-xl text-xs text-zinc-100 focus:outline-none focus:border-purple-500 transition-all"
                   required
                 />
               </div>
 
-              <div>
-                <label style={{ fontSize: 12, color: '#9090a8', display: 'block', marginBottom: 4 }}>Email</label>
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-zinc-300">Email</label>
                 <input
                   type="email"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  style={{ width: '100%', height: 38, background: '#1a1a2e', border: '0.5px solid #2a2a3a', borderRadius: 6, color: '#e8e8f0', padding: '0 12px', boxSizing: 'border-box' }}
+                  className="w-full px-4 py-2.5 bg-black/40 border border-white/10 rounded-xl text-xs text-zinc-100 focus:outline-none focus:border-purple-500 transition-all"
                   required
                 />
               </div>
 
-              <div>
-                <label style={{ fontSize: 12, color: '#9090a8', display: 'block', marginBottom: 4 }}>Skills (comma separated)</label>
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-zinc-300">Skills (comma separated)</label>
                 <input
                   type="text"
                   value={formData.skills}
                   onChange={(e) => setFormData({ ...formData, skills: e.target.value })}
-                  style={{ width: '100%', height: 38, background: '#1a1a2e', border: '0.5px solid #2a2a3a', borderRadius: 6, color: '#e8e8f0', padding: '0 12px', boxSizing: 'border-box' }}
+                  className="w-full px-4 py-2.5 bg-black/40 border border-white/10 rounded-xl text-xs text-zinc-100 focus:outline-none focus:border-purple-500 transition-all"
                   required
                 />
               </div>
 
-              <div>
-                <label style={{ fontSize: 12, color: '#9090a8', display: 'block', marginBottom: 4 }}>Preferred Roles (comma separated)</label>
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-zinc-300">Preferred Roles (comma separated)</label>
                 <input
                   type="text"
                   value={formData.preferred_roles}
                   onChange={(e) => setFormData({ ...formData, preferred_roles: e.target.value })}
-                  style={{ width: '100%', height: 38, background: '#1a1a2e', border: '0.5px solid #2a2a3a', borderRadius: 6, color: '#e8e8f0', padding: '0 12px', boxSizing: 'border-box' }}
+                  className="w-full px-4 py-2.5 bg-black/40 border border-white/10 rounded-xl text-xs text-zinc-100 focus:outline-none focus:border-purple-500 transition-all"
                   required
                 />
               </div>
 
-              <div>
-                <label style={{ fontSize: 12, color: '#9090a8', display: 'block', marginBottom: 4 }}>Target Countries (comma separated)</label>
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-zinc-300">Target Countries (comma separated)</label>
                 <input
                   type="text"
                   value={formData.target_countries}
                   onChange={(e) => setFormData({ ...formData, target_countries: e.target.value })}
-                  style={{ width: '100%', height: 38, background: '#1a1a2e', border: '0.5px solid #2a2a3a', borderRadius: 6, color: '#e8e8f0', padding: '0 12px', boxSizing: 'border-box' }}
+                  className="w-full px-4 py-2.5 bg-black/40 border border-white/10 rounded-xl text-xs text-zinc-100 focus:outline-none focus:border-purple-500 transition-all"
                   required
                 />
               </div>
 
-              <div>
-                <label style={{ fontSize: 12, color: '#9090a8', display: 'block', marginBottom: 4 }}>Job Types Wanted (comma separated)</label>
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-zinc-300">Job Types Wanted (comma separated)</label>
                 <input
                   type="text"
                   value={formData.job_types_wanted}
                   onChange={(e) => setFormData({ ...formData, job_types_wanted: e.target.value })}
-                  style={{ width: '100%', height: 38, background: '#1a1a2e', border: '0.5px solid #2a2a3a', borderRadius: 6, color: '#e8e8f0', padding: '0 12px', boxSizing: 'border-box' }}
+                  className="w-full px-4 py-2.5 bg-black/40 border border-white/10 rounded-xl text-xs text-zinc-100 focus:outline-none focus:border-purple-500 transition-all"
                   required
                 />
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                <div>
-                  <label style={{ fontSize: 12, color: '#9090a8', display: 'block', marginBottom: 4 }}>Experience Level</label>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-zinc-300">Experience Level</label>
                   <select
                     value={formData.experience_level}
                     onChange={(e) => setFormData({ ...formData, experience_level: e.target.value })}
-                    style={{ width: '100%', height: 38, background: '#1a1a2e', border: '0.5px solid #2a2a3a', borderRadius: 6, color: '#e8e8f0', padding: '0 12px', boxSizing: 'border-box' }}
+                    className="w-full px-4 py-2.5 bg-black/40 border border-white/10 rounded-xl text-xs text-zinc-100 focus:outline-none focus:border-purple-500 transition-all"
                   >
-                    <option value="junior">Junior</option>
-                    <option value="mid">Mid Level</option>
-                    <option value="senior">Senior Level</option>
+                    <option value="junior" className="bg-[#12121a]">Junior</option>
+                    <option value="mid" className="bg-[#12121a]">Mid Level</option>
+                    <option value="senior" className="bg-[#12121a]">Senior Level</option>
                   </select>
                 </div>
 
-                <div>
-                  <label style={{ fontSize: 12, color: '#9090a8', display: 'block', marginBottom: 4 }}>Min Salary ($)</label>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-zinc-300">Min Salary ($)</label>
                   <input
                     type="text"
                     value={formData.min_salary}
                     onChange={(e) => setFormData({ ...formData, min_salary: e.target.value })}
-                    style={{ width: '100%', height: 38, background: '#1a1a2e', border: '0.5px solid #2a2a3a', borderRadius: 6, color: '#e8e8f0', padding: '0 12px', boxSizing: 'border-box' }}
+                    className="w-full px-4 py-2.5 bg-black/40 border border-white/10 rounded-xl text-xs text-zinc-100 focus:outline-none focus:border-purple-500 transition-all"
                   />
                 </div>
               </div>
 
-              <div style={{ display: 'flex', gap: 10, marginTop: 10 }}>
+              <div className="flex items-center gap-3 pt-4">
                 <button
                   type="submit"
                   disabled={isCreating}
-                  style={{ flex: 1, height: 40, background: '#7c6ff7', border: 'none', borderRadius: 8, color: 'white', fontWeight: 500, cursor: 'pointer' }}
+                  className="flex-1 py-2.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 shadow-lg shadow-purple-900/40 disabled:opacity-50 transition-all"
                 >
                   {isCreating ? 'Saving...' : 'Save Profile'}
                 </button>
@@ -269,7 +260,7 @@ export default function Profile() {
                   <button
                     type="button"
                     onClick={() => { setIsEditing(false); setError(null); }}
-                    style={{ height: 40, padding: '0 18px', background: 'none', border: '0.5px solid #2a2a3a', borderRadius: 8, color: '#9090a8', cursor: 'pointer' }}
+                    className="px-5 py-2.5 rounded-xl text-xs font-semibold text-zinc-400 bg-white/5 border border-white/10 hover:bg-white/10 transition-all"
                   >
                     Cancel
                   </button>
@@ -282,77 +273,91 @@ export default function Profile() {
     );
   }
 
-  // Parse skills from backend string or array
   const parsedSkills = typeof profile.skills === 'string'
     ? profile.skills.split(',').map((s) => s.trim()).filter(Boolean)
     : Array.isArray(profile.skills)
     ? profile.skills
     : [];
 
-  // Initials for avatar
   const initials = profile.name
     ? profile.name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2)
     : '?';
 
   const stats = [
-    { label: 'Jobs Matched', value: matchCount ?? '—' },
-    { label: 'Resumes', value: cvCount ?? '—' },
-    { label: 'Skills Detected', value: parsedSkills.length },
+    { label: 'Jobs Matched', value: matchCount ?? '—', icon: Briefcase, color: 'text-purple-400', bg: 'bg-purple-500/15' },
+    { label: 'Resumes', value: cvCount ?? '—', icon: FileText, color: 'text-fuchsia-400', bg: 'bg-fuchsia-500/15' },
+    { label: 'Skills Detected', value: parsedSkills.length, icon: Sparkles, color: 'text-emerald-400', bg: 'bg-emerald-500/15' },
   ];
 
-  // Role preferences only. This app has no work-history data source, so
-  // nothing here is presented as employment history.
   const preferences = [
-    { label: 'Preferred Roles', value: profile.preferred_roles },
-    { label: 'Target Countries', value: profile.target_countries },
-    { label: 'Job Types Wanted', value: profile.job_types_wanted },
+    { label: 'Preferred Roles', value: profile.preferred_roles, icon: Target },
+    { label: 'Target Countries', value: profile.target_countries, icon: Globe },
+    { label: 'Job Types Wanted', value: profile.job_types_wanted, icon: Briefcase },
   ].filter((item) => item.value);
 
   return (
     <MainLayout title="Profile" primaryButton="Edit Profile" onPrimaryClick={startEditing}>
-      <div className="profile-container">
-        {/* Profile Card */}
-        <div className="profile-card">
-          <div className="profile-header">
-            <div className="profile-avatar">{initials}</div>
-            <div className="profile-info">
-              <h1 className="profile-name">{profile.name}</h1>
-              <p className="profile-email">{profile.email}</p>
+      <div className="space-y-6">
+        {/* HERO CARD */}
+        <div className="glass-card p-6 md:p-8 space-y-6">
+          <div className="flex items-center gap-5">
+            {/* 80px Avatar Circle with Gradient */}
+            <div className="w-[80px] h-[80px] rounded-full bg-gradient-to-tr from-violet-600 to-indigo-600 text-white font-extrabold text-2xl flex items-center justify-center shadow-xl border-2 border-purple-400/40 shrink-0">
+              {initials}
+            </div>
+            <div>
+              <h2 className="text-2xl font-extrabold text-white tracking-tight">{profile.name}</h2>
+              <p className="text-xs font-medium text-zinc-400 mt-0.5">{profile.email}</p>
             </div>
           </div>
 
-          {/* Stats Grid */}
-          <div className="profile-stats-grid">
-            {stats.map((s) => (
-              <div key={s.label} className="profile-stat-box">
-                <p className="profile-stat-label">{s.label}</p>
-                <p className="profile-stat-val">{s.value}</p>
-              </div>
-            ))}
+          {/* STATS ROW (3 Glassmorphic Mini Cards) */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {stats.map((s) => {
+              const IconComp = s.icon;
+              return (
+                <div key={s.label} className="p-4 rounded-2xl bg-white/[0.03] border border-white/10 flex items-center justify-between">
+                  <div>
+                    <p className="text-[11px] font-bold uppercase tracking-wider text-zinc-400 mb-0.5">{s.label}</p>
+                    <p className="text-2xl font-extrabold text-white font-mono">{s.value}</p>
+                  </div>
+                  <div className={`p-2.5 rounded-xl ${s.bg} ${s.color}`}>
+                    <IconComp className="w-5 h-5" />
+                  </div>
+                </div>
+              );
+            })}
           </div>
 
-          {/* Additional Preferences Row */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, fontSize: 12, color: '#9090a8' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <HiOutlineBriefcase style={{ color: '#7c6ff7' }} />
-              <span>Level: <strong style={{ color: '#e8e8f0' }}>{profile.experience_level || '—'}</strong></span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <HiOutlineGlobe style={{ color: '#7c6ff7' }} />
-              <span>Job Types: <strong style={{ color: '#e8e8f0' }}>{profile.job_types_wanted || '—'}</strong></span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <HiOutlineCurrencyDollar style={{ color: '#7c6ff7' }} />
-              <span>Min Salary: <strong style={{ color: '#e8e8f0' }}>{profile.min_salary ? `$${profile.min_salary}` : '—'}</strong></span>
-            </div>
+          {/* LEVEL / JOB TYPE / SALARY ROW AS BADGE PILLS */}
+          <div className="flex flex-wrap items-center gap-3 pt-4 border-t border-white/5">
+            <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl border bg-white/5 border-white/10 text-xs font-semibold text-zinc-300">
+              <Briefcase className="w-3.5 h-3.5 text-purple-400" />
+              Level: <strong className="text-white capitalize">{profile.experience_level || '—'}</strong>
+            </span>
+            <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl border bg-white/5 border-white/10 text-xs font-semibold text-zinc-300">
+              <Globe className="w-3.5 h-3.5 text-indigo-400" />
+              Types: <strong className="text-white">{profile.job_types_wanted || '—'}</strong>
+            </span>
+            <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl border bg-white/5 border-white/10 text-xs font-semibold text-zinc-300">
+              <CircleDollarSign className="w-3.5 h-3.5 text-emerald-400" />
+              Min Salary: <strong className="text-white">{profile.min_salary ? `$${profile.min_salary}` : '—'}</strong>
+            </span>
           </div>
 
-          {/* Skills */}
-          <div>
-            <h2 className="profile-section-title">Technical Skills</h2>
-            <div className="profile-skills-row">
+          {/* TECHNICAL SKILLS AS VIOLET PILL BADGES */}
+          <div className="space-y-3 pt-2">
+            <h3 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
+              <Code className="w-4 h-4 text-purple-400" />
+              Technical Skills
+            </h3>
+            <div className="flex flex-wrap gap-2">
               {parsedSkills.map((skill) => (
-                <span key={skill} className="profile-skill-tag">
+                <span
+                  key={skill}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-purple-500/15 text-purple-300 border border-purple-500/30 shadow-sm"
+                >
+                  <Sparkles className="w-3 h-3 text-purple-400" />
                   {skill}
                 </span>
               ))}
@@ -360,25 +365,30 @@ export default function Profile() {
           </div>
         </div>
 
-        {/* Role Preferences Card */}
-        <div className="profile-card">
-          <h2 className="profile-section-title">Role Preferences</h2>
+        {/* ROLE PREFERENCES SECTION */}
+        <div className="glass-card p-6 md:p-8 space-y-4">
+          <h2 className="text-base font-bold text-white tracking-tight border-b border-white/5 pb-3">
+            Role Preferences
+          </h2>
           {preferences.length > 0 ? (
-            <div className="profile-exp-list">
-              {preferences.map((pref) => (
-                <div key={pref.label} className="profile-exp-item">
-                  <div className="profile-exp-icon">
-                    <HiOutlineBriefcase />
+            <div className="space-y-3">
+              {preferences.map((pref) => {
+                const PrefIcon = pref.icon;
+                return (
+                  <div key={pref.label} className="p-4 rounded-xl bg-white/[0.03] border border-white/10 flex items-center gap-4 hover:border-white/20 transition-all">
+                    <div className="p-2.5 rounded-xl bg-purple-500/15 text-purple-400 shrink-0 border border-purple-500/20">
+                      <PrefIcon className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h3 className="text-xs font-bold text-white mb-0.5">{pref.label}</h3>
+                      <p className="text-xs text-zinc-400 font-medium">{pref.value}</p>
+                    </div>
                   </div>
-                  <div className="profile-exp-details">
-                    <h3 className="profile-exp-role">{pref.label}</h3>
-                    <p className="profile-exp-company">{pref.value}</p>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           ) : (
-            <p style={{ fontSize: 13, color: '#9090a8', margin: 0 }}>
+            <p className="text-xs text-zinc-500">
               No preferences set yet. Use Edit Profile to add them.
             </p>
           )}

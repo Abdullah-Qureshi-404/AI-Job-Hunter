@@ -118,3 +118,8 @@
   /* Keep entries from splitting across pages. */
   .resume-entry, .resume-section { page-break-inside: avoid; }
 }
+
+/* Typeface follows the uploaded resume. Both are ATS-safe; the choice is
+   purely to keep the generated document recognisable to its owner. */
+.resume-sheet.resume-serif { font-family: Georgia, 'Times New Roman', serif; }
+.resume-sheet.resume-sans  { font-family: 'Segoe UI', Arial, Helvetica, sans-serif; }

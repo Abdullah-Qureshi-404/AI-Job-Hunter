@@ -12,8 +12,10 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .models import Job
+from .models import SavedJob
 from .serializers import JobSerializer
 from .serializers import JobListSerializer
+from .serializers import SavedJobSerializer
 
 from jobs.scrapers.orchestrator import run_all_scrapers
 from jobs.logger import get_scraper_logger
@@ -375,4 +377,79 @@ class AnalyzeJobImageView(APIView):
 
         return Response(result, status=status.HTTP_200_OK)
 
-
+
+
+# Lists the authenticated user's saved jobs, and saves a new one.
+class SavedJobListCreateView(generics.ListCreateAPIView):
+
+    serializer_class = SavedJobSerializer
+
+    def get_queryset(self):
+        supabase_uid = getattr(self.request.user, "supabase_uid", None)
+
+        if not supabase_uid:
+            return SavedJob.objects.none()
+
+        return (
+            SavedJob.objects
+            .filter(supabase_uid=supabase_uid, job__is_active=True)
+            .select_related("job")
+        )
+
+    def create(self, request, *args, **kwargs):
+        from rest_framework import status
+
+        supabase_uid = getattr(request.user, "supabase_uid", None)
+
+        if not supabase_uid:
+            return Response(
+                {"error": "User identification missing."},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+
+        job_id = request.data.get("job") or request.data.get("job_id")
+
+        if not job_id:
+            return Response(
+                {"error": "A job id is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            job = Job.objects.get(pk=job_id, is_active=True)
+        except (Job.DoesNotExist, ValueError, TypeError):
+            return Response(
+                {"error": "That job could not be found."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        # Saving twice is not an error - just return the existing bookmark.
+        saved, created = SavedJob.objects.get_or_create(
+            supabase_uid=supabase_uid,
+            job=job,
+            defaults={"note": request.data.get("note", "")},
+        )
+
+        serializer = self.get_serializer(saved)
+
+        return Response(
+            serializer.data,
+            status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
+        )
+
+
+# Removes a saved job by the job's id (not the bookmark id), which is what
+# the job detail page has to hand.
+class SavedJobDeleteView(generics.DestroyAPIView):
+
+    serializer_class = SavedJobSerializer
+
+    lookup_field = "job_id"
+
+    def get_queryset(self):
+        supabase_uid = getattr(self.request.user, "supabase_uid", None)
+
+        if not supabase_uid:
+            return SavedJob.objects.none()
+
+        return SavedJob.objects.filter(supabase_uid=supabase_uid)

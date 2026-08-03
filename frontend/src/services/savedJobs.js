@@ -1,58 +1,62 @@
 /**
- * Saved jobs, persisted in localStorage.
+ * Saved jobs, persisted server-side.
  *
- * The Save button previously only flipped React state, so a saved job was
- * forgotten the moment you navigated away. There is no saved-jobs table in
- * the backend yet; this keeps the feature honest and per-browser until one
- * exists.
+ * Previously this used localStorage, so bookmarks were per-browser and lost
+ * on a cache clear. They now live in the database against the user's Supabase
+ * id, so they follow the account across devices.
  */
 
-const KEY = 'jobhunter.savedJobs';
+import api from './api';
+import { cached, invalidate } from './cache';
 
-function read() {
-  try {
-    const raw = localStorage.getItem(KEY);
-    const parsed = raw ? JSON.parse(raw) : [];
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
+const KEY = 'savedJobs';
+
+/** GET /api/jobs/saved/ */
+export const getSavedJobs = async ({ force = false } = {}) =>
+  cached(
+    KEY,
+    async () => {
+      try {
+        const response = await api.get('/api/jobs/saved/');
+        const data = response.data;
+        return Array.isArray(data?.results) ? data.results : (Array.isArray(data) ? data : []);
+      } catch (error) {
+        console.error('Error fetching saved jobs:', error);
+        throw error;
+      }
+    },
+    { force, ttl: 120_000 }
+  );
+
+/** POST /api/jobs/saved/ */
+export const saveJob = async (jobId) => {
+  const response = await api.post('/api/jobs/saved/', { job: jobId });
+  invalidate(KEY);
+  return response.data;
+};
+
+/** DELETE /api/jobs/saved/<jobId>/ */
+export const unsaveJob = async (jobId) => {
+  await api.delete(`/api/jobs/saved/${jobId}/`);
+  invalidate(KEY);
+};
+
+/**
+ * Flip the saved state for a job.
+ * @returns {Promise<boolean>} true when the job is now saved
+ */
+export const toggleSavedJob = async (jobId, currentlySaved) => {
+  if (currentlySaved) {
+    await unsaveJob(jobId);
+    return false;
   }
-}
 
-function write(list) {
-  try {
-    localStorage.setItem(KEY, JSON.stringify(list));
-  } catch (err) {
-    console.warn('[savedJobs] Could not persist:', err);
-  }
-}
+  await saveJob(jobId);
+  return true;
+};
 
-export function getSavedJobs() {
-  return read();
-}
-
-export function isJobSaved(id) {
-  return read().some((job) => String(job.id) === String(id));
-}
-
-export function toggleSavedJob(job) {
-  const list = read();
-  const exists = list.some((item) => String(item.id) === String(job.id));
-
-  const next = exists
-    ? list.filter((item) => String(item.id) !== String(job.id))
-    : [
-        {
-          id: job.id,
-          title: job.title,
-          company: job.company,
-          location: job.location,
-          source_url: job.source_url,
-          savedAt: new Date().toISOString(),
-        },
-        ...list,
-      ];
-
-  write(next);
-  return !exists; // true when it is now saved
-}
+/** Whether a job id appears in the user's saved list. */
+export const isJobSaved = async (jobId) => {
+  const saved = await getSavedJobs();
+  return saved.some((item) => String(item.job?.id) === String(jobId));
+};

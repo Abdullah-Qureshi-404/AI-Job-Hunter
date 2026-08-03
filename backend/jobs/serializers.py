@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from .models import Job
+from .models import SavedJob
 
 
 # match_score is annotated onto the queryset per requesting user (see
@@ -55,3 +56,19 @@ class EmailGenerateSerializer(serializers.Serializer):
     job_title = serializers.CharField(required=True)
     company_name = serializers.CharField(required=True)
     job_description = serializers.CharField(required=True)
+
+# Serializer for a saved (bookmarked) job.
+class SavedJobSerializer(serializers.ModelSerializer):
+
+    job = JobListSerializer(read_only=True)
+
+    class Meta:
+
+        model = SavedJob
+
+        fields = [
+            "id",
+            "job",
+            "note",
+            "saved_at",
+        ]

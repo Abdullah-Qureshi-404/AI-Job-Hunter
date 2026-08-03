@@ -54,6 +54,12 @@ class Job(models.Model):
 
     requirements = models.TextField(blank=True)
 
+    # LLM-restructured copy of `description`, produced offline by
+    # `manage.py format_descriptions`. Only headings/paragraphs/bullets are
+    # added - the wording is verified unchanged before saving. Empty until
+    # the command has run; clients fall back to `description`.
+    description_formatted = models.TextField(blank=True)
+
     salary_min = models.IntegerField(
         null=True,
         blank=True
@@ -107,3 +113,29 @@ class Job(models.Model):
 
     def __str__(self):
         return f"{self.title} - {self.company}"
+
+# Stores jobs a user has bookmarked from the Browse Jobs or Job Detail pages.
+class SavedJob(models.Model):
+
+    supabase_uid = models.CharField(max_length=255, db_index=True)
+
+    job = models.ForeignKey(
+        Job,
+        on_delete=models.CASCADE,
+        related_name="saved_by"
+    )
+
+    note = models.TextField(blank=True)
+
+    saved_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-saved_at"]
+        # A user can only save a given job once.
+        unique_together = ("supabase_uid", "job")
+        indexes = [
+            models.Index(fields=["supabase_uid", "-saved_at"]),
+        ]
+
+    def __str__(self):
+        return f"{self.supabase_uid} saved {self.job.title}"

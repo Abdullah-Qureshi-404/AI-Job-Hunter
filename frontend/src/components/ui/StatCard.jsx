@@ -1,15 +1,17 @@
-import './StatCard.css';
-
-export default function StatCard({ label, value, accentColor = '#7c6ff7' }) {
+export default function StatCard({ label, value, accentColor = '#7c3aed' }) {
   return (
     <div
-      className="stat-card"
-      style={{ '--accent': accentColor }}
-      onMouseEnter={(e) => e.currentTarget.style.borderColor = accentColor}
-      onMouseLeave={(e) => e.currentTarget.style.borderColor = '#2a2a3a'}
+      className="glass-card glass-card-hover p-5 relative overflow-hidden group"
+      style={{ borderTop: `2px solid ${accentColor}` }}
     >
-      <p className="stat-card-label">{label}</p>
-      <p className="stat-card-value" style={{ color: accentColor }}>{value}</p>
+      <div
+        className="absolute -top-12 -right-12 w-24 h-24 rounded-full opacity-10 blur-xl pointer-events-none group-hover:opacity-25 transition-opacity"
+        style={{ backgroundColor: accentColor }}
+      />
+      <p className="text-xs font-semibold uppercase tracking-wider text-zinc-400 mb-1.5">{label}</p>
+      <p className="text-3xl font-extrabold tracking-tight" style={{ color: accentColor }}>
+        {value}
+      </p>
     </div>
   );
 }

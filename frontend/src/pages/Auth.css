@@ -1,11 +1,5 @@
-/* ========================================
-   Auth Page — Stylesheet
-   ======================================== */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
-/* ---------- Google Font ---------- */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-
-/* ---------- Page ---------- */
 .auth-page {
   min-height: 100vh;
   display: flex;
@@ -13,30 +7,30 @@
   justify-content: center;
   background: #0a0a0f;
   font-family: 'Inter', sans-serif;
-  padding: 20px;
+  padding: 24px;
+  position: relative;
+  overflow: hidden;
 }
 
-/* ---------- Card ---------- */
 .auth-card {
   position: relative;
-  width: 860px;
-  height: 500px;
-  background: #0e0e1a;
-  border-radius: 20px;
+  width: 900px;
+  height: 540px;
+  background: rgba(18, 18, 26, 0.85);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-radius: 24px;
   overflow: hidden;
-  border: 0.5px solid #2a2a3a;
+  border: 1px solid rgba(255, 255, 255, 0.08);
   display: flex;
-  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.5),
-              0 0 80px rgba(124, 111, 247, 0.06);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6),
+              0 0 100px rgba(124, 58, 237, 0.12);
 }
 
-/* ========================================
-   FORM PANELS (left + right halves)
-   ======================================== */
 .form-panel {
   width: 50%;
   height: 100%;
-  background: #13131f;
+  background: transparent;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -47,116 +41,84 @@
 
 .form-inner {
   width: 100%;
-  max-width: 320px;
+  max-width: 340px;
   padding: 0 24px;
   display: flex;
   flex-direction: column;
   align-items: center;
 }
 
-/* ---------- Form Title ---------- */
 .form-title {
-  font-size: 26px;
-  font-weight: 700;
-  color: #e8e8f0;
-  margin-bottom: 20px;
-  letter-spacing: -0.3px;
+  font-size: 28px;
+  font-weight: 800;
+  color: #ffffff;
+  margin-bottom: 8px;
+  letter-spacing: -0.5px;
 }
 
-/* ---------- Social Icons ---------- */
-.social-row {
-  display: flex;
-  gap: 12px;
-  margin-bottom: 18px;
-}
-
-.social-btn {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  border: 1px solid #2a2a3a;
-  background: transparent;
-  color: #9090a8;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 17px;
-  cursor: pointer;
-  transition: border-color 0.25s ease, color 0.25s ease, transform 0.25s ease;
-}
-
-.social-btn:hover {
-  border-color: #7c6ff7;
-  color: #7c6ff7;
-  transform: scale(1.1);
-}
-
-/* ---------- Divider ---------- */
 .divider {
-  font-size: 11px;
-  color: #6b6b80;
-  margin-bottom: 18px;
+  font-size: 12px;
+  color: #9090a8;
+  margin-bottom: 24px;
   letter-spacing: 0.3px;
   text-align: center;
 }
 
-/* ---------- Input Group ---------- */
 .input-group {
   width: 100%;
   position: relative;
-  margin-bottom: 14px;
+  margin-bottom: 16px;
 }
 
 .input-icon {
   position: absolute;
   top: 50%;
-  left: 12px;
+  left: 14px;
   transform: translateY(-50%);
-  color: #6b6b80;
-  font-size: 15px;
+  color: #71717a;
+  font-size: 16px;
   pointer-events: none;
   transition: color 0.25s ease;
 }
 
 .input-group input {
   width: 100%;
-  height: 42px;
-  border-radius: 8px;
-  background: #1a1a2e;
-  border: 0.5px solid #2a2a3a;
-  color: #e8e8f0;
+  height: 44px;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #f4f4f5;
   font-size: 13px;
   font-family: 'Inter', sans-serif;
-  padding-left: 36px;
-  padding-right: 12px;
+  padding-left: 40px;
+  padding-right: 14px;
   outline: none;
   transition: border-color 0.25s ease, box-shadow 0.25s ease;
   box-sizing: border-box;
 }
 
 .input-group input::placeholder {
-  color: #6b6b80;
+  color: #71717a;
 }
 
 .input-group input:focus {
-  border-color: #7c6ff7;
-  box-shadow: 0 0 0 2px rgba(124, 111, 247, 0.12);
+  border-color: #7c3aed;
+  box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.2);
 }
 
 .input-group input:focus ~ .input-icon {
-  color: #7c6ff7;
+  color: #a855f7;
 }
 
-/* ---------- Password Eye Toggle ---------- */
 .eye-toggle {
   position: absolute;
   top: 50%;
-  right: 12px;
+  right: 14px;
   transform: translateY(-50%);
   background: none;
   border: none;
-  color: #6b6b80;
-  font-size: 16px;
+  color: #71717a;
+  font-size: 18px;
   cursor: pointer;
   padding: 0;
   display: flex;
@@ -165,21 +127,20 @@
 }
 
 .eye-toggle:hover {
-  color: #9090a8;
+  color: #a1a1aa;
 }
 
-/* ---------- Forgot Password ---------- */
 .forgot-row {
   width: 100%;
   display: flex;
   justify-content: flex-end;
-  margin-bottom: 16px;
-  margin-top: -4px;
+  margin-bottom: 18px;
+  margin-top: -6px;
 }
 
 .forgot-link {
-  font-size: 11px;
-  color: #9090a8;
+  font-size: 12px;
+  color: #a1a1aa;
   text-decoration: none;
   cursor: pointer;
   transition: color 0.25s ease;
@@ -189,44 +150,40 @@
 }
 
 .forgot-link:hover {
-  color: #7c6ff7;
+  color: #a855f7;
 }
 
-/* ---------- Primary Button ---------- */
 .btn-primary {
   width: 100%;
-  height: 42px;
-  border-radius: 8px;
-  background: #7c6ff7;
+  height: 44px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #7c3aed 0%, #6366f1 100%);
   border: none;
   color: white;
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 700;
   letter-spacing: 1.5px;
   cursor: pointer;
   font-family: 'Inter', sans-serif;
-  transition: background 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
+  transition: all 0.25s ease;
   margin-top: 4px;
+  box-shadow: 0 8px 24px rgba(124, 58, 237, 0.35);
 }
 
 .btn-primary:hover {
-  background: #6a5ee0;
+  background: linear-gradient(135deg, #a855f7 0%, #4f46e5 100%);
   transform: translateY(-1px);
-  box-shadow: 0 4px 16px rgba(124, 111, 247, 0.3);
+  box-shadow: 0 12px 32px rgba(124, 58, 237, 0.5);
 }
 
 .btn-primary:active {
   transform: translateY(0);
-  box-shadow: none;
 }
 
-/* ========================================
-   PURPLE PANEL (Overlay)
-   ======================================== */
 .purple-panel {
   width: 50%;
   height: 100%;
-  background: linear-gradient(135deg, #7c6ff7 0%, #6a5ee0 50%, #5b50d6 100%);
+  background: linear-gradient(135deg, #7c3aed 0%, #4c1d95 100%);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -242,7 +199,7 @@
   content: '';
   position: absolute;
   inset: 0;
-  background: radial-gradient(circle at 30% 20%, rgba(255,255,255,0.08) 0%, transparent 60%);
+  background: radial-gradient(circle at 30% 20%, rgba(255,255,255,0.12) 0%, transparent 60%);
   pointer-events: none;
 }
 
@@ -254,74 +211,63 @@
 }
 
 .purple-heading {
-  font-size: 28px;
-  font-weight: 700;
+  font-size: 30px;
+  font-weight: 800;
   color: #ffffff;
   margin-bottom: 14px;
   position: relative;
-  letter-spacing: -0.3px;
+  letter-spacing: -0.5px;
 }
 
 .purple-text {
   font-size: 13px;
-  color: rgba(255, 255, 255, 0.8);
+  color: rgba(255, 255, 255, 0.85);
   line-height: 1.7;
-  margin-bottom: 28px;
-  max-width: 260px;
+  margin-bottom: 32px;
+  max-width: 280px;
   position: relative;
+  font-weight: 500;
 }
 
-/* ---------- Outlined Button ---------- */
 .btn-outline {
-  background: transparent;
-  border: 1.5px solid white;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1.5px solid rgba(255, 255, 255, 0.8);
   color: white;
-  border-radius: 20px;
-  padding: 8px 32px;
+  border-radius: 9999px;
+  padding: 10px 36px;
   font-size: 12px;
-  font-weight: 500;
+  font-weight: 700;
   letter-spacing: 1.5px;
   cursor: pointer;
   font-family: 'Inter', sans-serif;
-  transition: background 0.3s ease, color 0.3s ease, transform 0.2s ease;
+  transition: all 0.25s ease;
   position: relative;
+  backdrop-filter: blur(8px);
 }
 
 .btn-outline:hover {
   background: white;
-  color: #7c6ff7;
+  color: #7c3aed;
   transform: translateY(-1px);
+  box-shadow: 0 8px 24px rgba(255, 255, 255, 0.2);
 }
 
-.btn-outline:active {
-  transform: translateY(0);
-}
-
-/* ========================================
-   MOBILE-TOGGLE (visible only on mobile)
-   ======================================== */
 .mobile-toggle {
   display: none;
 }
 
-/* ========================================
-   RESPONSIVE
-   ======================================== */
-
-/* Tablet */
 @media (max-width: 900px) {
   .auth-card {
     width: 96vw;
     max-width: 720px;
-    height: 480px;
+    height: 500px;
   }
 
   .form-inner {
-    max-width: 280px;
+    max-width: 300px;
   }
 }
 
-/* Mobile */
 @media (max-width: 768px) {
   .auth-card {
     width: 100%;
@@ -346,91 +292,82 @@
     padding: 0 20px;
   }
 
-  /* Hide the sliding purple panel on mobile */
   .purple-panel {
     display: none !important;
   }
 
-  /* Show mobile toggle link */
   .mobile-toggle {
     display: block;
-    margin-top: 20px;
+    margin-top: 24px;
     font-size: 13px;
-    color: #9090a8;
+    color: #a1a1aa;
     text-align: center;
   }
 
   .mobile-toggle button {
     background: none;
     border: none;
-    color: #7c6ff7;
+    color: #a855f7;
     font-family: 'Inter', sans-serif;
     font-size: 13px;
     cursor: pointer;
-    font-weight: 500;
+    font-weight: 600;
     text-decoration: underline;
     text-underline-offset: 3px;
     transition: color 0.25s ease;
   }
 
   .mobile-toggle button:hover {
-    color: #5b50d6;
+    color: #c084fc;
   }
 }
 
-/* ========================================
-   AUTH MESSAGES & LOADING (added for auth integration)
-   ======================================== */
-
-/* Form element reset — forms should behave like the previous fragments */
 .form-panel form {
   width: 100%;
-  max-width: 320px;
-  padding: 0 24px;
+  max-width: 340px;
+  padding: 0 12px;
   display: flex;
   flex-direction: column;
   align-items: center;
   box-sizing: border-box;
 }
 
-/* Error message */
 .auth-error {
   width: 100%;
   font-size: 12px;
-  color: #ff6b6b;
-  background: rgba(255, 107, 107, 0.08);
-  border: 0.5px solid rgba(255, 107, 107, 0.25);
-  border-radius: 6px;
-  padding: 8px 12px;
-  margin-bottom: 12px;
+  font-weight: 600;
+  color: #f87171;
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 10px;
+  padding: 10px 14px;
+  margin-bottom: 16px;
   text-align: center;
   line-height: 1.5;
   box-sizing: border-box;
 }
 
-/* Success message */
 .auth-success {
   width: 100%;
   font-size: 12px;
-  color: #51cf66;
-  background: rgba(81, 207, 102, 0.08);
-  border: 0.5px solid rgba(81, 207, 102, 0.25);
-  border-radius: 6px;
-  padding: 8px 12px;
-  margin-bottom: 12px;
+  font-weight: 600;
+  color: #34d399;
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: 10px;
+  padding: 10px 14px;
+  margin-bottom: 16px;
   text-align: center;
   line-height: 1.5;
   box-sizing: border-box;
 }
 
-/* Disabled button */
 .btn-primary:disabled {
   cursor: not-allowed;
   transform: none;
   box-shadow: none;
 }
 
-/* Button spinner */
 .btn-spinner {
   display: inline-block;
   width: 18px;

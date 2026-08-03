@@ -10,6 +10,7 @@ services/job_service.py
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 
 from middleware.auth_guard import get_current_user
+from middleware.rate_limit import rate_limit
 
 from schemas.job_schema import (
     JobAnalyzeRequest,
@@ -28,7 +29,8 @@ router = APIRouter()
 
 @router.post(
     "/analyze",
-    response_model=JobAnalysisResponse
+    response_model=JobAnalysisResponse,
+    dependencies=[Depends(rate_limit(40, 3600, "analyze_job"))],
 )
 def analyze_job(
     data: JobAnalyzeRequest,
@@ -53,7 +55,8 @@ def analyze_job(
 
 @router.post(
     "/analyze-image",
-    response_model=JobAnalysisResponse
+    response_model=JobAnalysisResponse,
+    dependencies=[Depends(rate_limit(20, 3600, "analyze_image"))],
 )
 def analyze_job_image(
     file: UploadFile = File(...),
