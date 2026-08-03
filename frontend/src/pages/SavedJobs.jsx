@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { BookmarkX, Trash2, ArrowRight } from 'lucide-react';
 import MainLayout from '../components/layout/MainLayout';
 import JobCard from '../components/ui/JobCard';
 import ConfirmDialog from '../components/ui/ConfirmDialog';
@@ -41,7 +42,6 @@ export default function SavedJobs() {
     const previous = saved;
 
     setRemoving(true);
-    // Drop it straight away rather than reloading the whole list.
     setSaved((rows) => rows.filter((row) => row.job?.id !== jobId));
 
     try {
@@ -59,22 +59,27 @@ export default function SavedJobs() {
 
   return (
     <MainLayout title="Saved Jobs">
-      <div className="jobs-container">
+      <div className="space-y-6">
         {error && (
-          <div style={{ color: '#ff6b6b', background: 'rgba(255,107,107,0.1)', padding: '12px 16px', borderRadius: 8, fontSize: 13, marginBottom: 20 }}>
+          <div className="p-4 rounded-xl text-xs font-semibold text-rose-300 bg-rose-950/40 border border-rose-500/30 flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-rose-500" />
             {error}
           </div>
         )}
 
         {!loading && saved.length > 0 && (
-          <p style={{ fontSize: 13, color: '#9090a8', margin: '0 0 16px' }}>
-            {saved.length} saved {saved.length === 1 ? 'job' : 'jobs'}
-          </p>
+          <div className="flex items-center justify-between text-xs text-zinc-400 font-medium px-1">
+            <span>
+              Showing <span className="text-zinc-100 font-bold">{saved.length}</span> saved {saved.length === 1 ? 'job' : 'jobs'}
+            </span>
+          </div>
         )}
 
-        <div className="jobs-grid">
+        <div className="space-y-3">
           {loading ? (
-            <div className="jobs-empty">Loading saved jobs...</div>
+            <div className="glass-card p-12 text-center text-zinc-400 text-sm">
+              Loading saved jobs...
+            </div>
           ) : saved.length > 0 ? (
             saved.map((row) => {
               const job = row.job;
@@ -88,7 +93,7 @@ export default function SavedJobs() {
               const score = job.match_score != null ? Math.round(job.match_score) : null;
 
               return (
-                <div key={row.id} style={{ position: 'relative' }}>
+                <div key={row.id} className="relative group">
                   <JobCard
                     title={job.title}
                     company={job.company}
@@ -96,9 +101,11 @@ export default function SavedJobs() {
                     tags={tags}
                     matchScore={score}
                     isTopMatch={score != null && score >= 90}
+                    isSaved={true}
                     onClick={() => navigate(`/jobs/${job.id}`)}
                     onMouseEnter={() => getJobDetail(job.id).catch(() => {})}
                   />
+                  {/* Red Ghost Remove Button */}
                   <button
                     type="button"
                     onClick={(e) => {
@@ -106,27 +113,34 @@ export default function SavedJobs() {
                       setPendingRemove(row);
                     }}
                     title="Remove from saved"
-                    style={{
-                      position: 'absolute',
-                      top: 12,
-                      right: 12,
-                      background: 'rgba(255,107,107,0.12)',
-                      border: 'none',
-                      borderRadius: 6,
-                      color: '#e05260',
-                      fontSize: 11,
-                      padding: '4px 9px',
-                      cursor: 'pointer',
-                    }}
+                    className="absolute top-4 right-16 z-10 inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-[11px] font-bold text-rose-400 bg-rose-950/40 border border-rose-500/30 hover:bg-rose-500/20 hover:border-rose-500/50 hover:shadow-lg hover:shadow-rose-950/40 transition-all opacity-80 group-hover:opacity-100"
                   >
+                    <Trash2 className="w-3.5 h-3.5" />
                     Remove
                   </button>
                 </div>
               );
             })
           ) : (
-            <div className="jobs-empty">
-              No saved jobs yet. Open a job and press Save to keep it here.
+            /* ILLUSTRATED EMPTY STATE CARD */
+            <div className="glass-card p-12 text-center flex flex-col items-center justify-center gap-4 max-w-md mx-auto my-8">
+              <div className="w-16 h-16 rounded-full bg-purple-500/15 text-purple-400 border border-purple-500/30 flex items-center justify-center shadow-lg shadow-purple-950/30 mb-2">
+                <BookmarkX className="w-8 h-8" />
+              </div>
+              <div className="space-y-1">
+                <h3 className="text-lg font-extrabold text-white">No saved jobs yet</h3>
+                <p className="text-xs text-zinc-400 leading-relaxed">
+                  Bookmark positions while browsing jobs to easily review and apply to them later.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => navigate('/jobs')}
+                className="mt-2 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 shadow-lg shadow-purple-900/40 transition-all"
+              >
+                Browse Jobs
+                <ArrowRight className="w-4 h-4" />
+              </button>
             </div>
           )}
         </div>

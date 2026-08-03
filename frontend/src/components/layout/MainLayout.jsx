@@ -3,15 +3,9 @@ import Topbar from './Topbar';
 
 export default function MainLayout({ title, primaryButton, secondaryButton, onPrimaryClick, onSecondaryClick, children }) {
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', background: '#0a0a0f' }}>
+    <div className="flex min-h-screen bg-[#0a0a0f] text-zinc-100 relative">
       <Sidebar />
-      <div style={{
-        flex: 1,
-        marginLeft: 220,
-        display: 'flex',
-        flexDirection: 'column',
-        minHeight: '100vh',
-      }}>
+      <div className="flex-1 ml-0 md:ml-64 flex flex-col min-h-screen relative z-10 pb-20 md:pb-8">
         <Topbar
           title={title}
           primaryButton={primaryButton}
@@ -19,11 +13,7 @@ export default function MainLayout({ title, primaryButton, secondaryButton, onPr
           onPrimaryClick={onPrimaryClick}
           onSecondaryClick={onSecondaryClick}
         />
-        <main style={{
-          flex: 1,
-          padding: '24px 28px',
-          overflowY: 'auto',
-        }}>
+        <main className="flex-1 p-4 md:p-8 overflow-y-auto max-w-7xl w-full mx-auto space-y-6">
           {children}
         </main>
       </div>

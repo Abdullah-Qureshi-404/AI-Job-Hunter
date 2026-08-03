@@ -13,6 +13,7 @@ from fastapi import HTTPException
 
 from core.groq_client import groq_client, GROQ_MODEL
 from core.json_utils import clean_json_response
+from core.groq_errors import raise_friendly_groq_error
 from rag.retriever import search_chunks
 
 
@@ -145,7 +146,5 @@ No markdown, no triple backticks.
         raise
 
     except Exception as error:
-        raise HTTPException(
-            status_code=500,
-            detail="Email generation failed."
-        ) from error
+        logger.exception("Email generation failed")
+        raise_friendly_groq_error(error, "generate your outreach email")

@@ -10,6 +10,7 @@ import Apply from './pages/Apply';
 import Profile from './pages/Profile';
 import Resumes from './pages/Resumes';
 import SavedJobs from './pages/SavedJobs';
+import Matches from './pages/Matches';
 
 function AuthRoute() {
   const { user } = useAuth();
@@ -29,6 +30,7 @@ function App() {
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/jobs" element={<ProtectedRoute><Jobs /></ProtectedRoute>} />
           <Route path="/saved" element={<ProtectedRoute><SavedJobs /></ProtectedRoute>} />
+          <Route path="/matches" element={<ProtectedRoute><Matches /></ProtectedRoute>} />
           <Route path="/jobs/:id" element={<ProtectedRoute><JobDetail /></ProtectedRoute>} />
           <Route path="/apply" element={<ProtectedRoute><Apply /></ProtectedRoute>} />
           <Route path="/apply/:id" element={<ProtectedRoute><Apply /></ProtectedRoute>} />

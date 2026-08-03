@@ -19,6 +19,7 @@ from core.groq_client import (
 )
 
 from core.json_utils import clean_json_response
+from core.groq_errors import raise_friendly_groq_error
 
 
 
@@ -232,7 +233,5 @@ def generate_resume(
 
     except Exception as error:
 
-        raise HTTPException(
-            status_code=500,
-            detail="Resume generation failed."
-        ) from error
+        logger.exception("Resume generation failed")
+        raise_friendly_groq_error(error, "generate your resume")

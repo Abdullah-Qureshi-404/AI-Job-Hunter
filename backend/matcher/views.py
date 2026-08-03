@@ -2,6 +2,7 @@ import logging
 
 from rest_framework import generics
 from rest_framework import status
+from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -31,9 +32,18 @@ def local_skills(request):
     return [skill.strip() for skill in profile.skills.split(",") if skill.strip()]
 
 
+class MatchesPagination(PageNumberPagination):
+    # Smaller than the project-wide default (20) so "20 matched" renders as
+    # 2 pages of 10 rather than one long list.
+    page_size = 10
+    page_size_query_param = "page_size"
+    max_page_size = 50
+
+
 # Returns previously computed matches without recomputing them.
 class MatchedJobListView(generics.ListAPIView):
     serializer_class = MatchedJobSerializer
+    pagination_class = MatchesPagination
 
     def get_queryset(self):
         supabase_uid = getattr(self.request.user, "supabase_uid", None)
