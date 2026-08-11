@@ -202,4 +202,5 @@ def analyze_job_from_image(
         # Log the real cause. A generic message here previously hid a
         # NameError for several debugging sessions.
         logger.exception("Image job analysis failed")
+        print(f"ACTUAL ERROR: {type(error).__name__}: {error}")
         raise_friendly_groq_error(error, "read the job posting from that image")
