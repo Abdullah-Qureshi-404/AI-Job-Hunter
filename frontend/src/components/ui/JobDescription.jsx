@@ -1,21 +1,7 @@
-/**
- * Renders a scraped job description as readable, structured content.
- *
- * Scrapers return plain text where the structure lives entirely in line
- * breaks, bullet characters and heading lines. Rendering that inside a <p>
- * collapsed all whitespace into one unreadable block. This parses the text
- * back into headings, bullet lists and paragraphs.
- *
- * Nothing is invented or reworded - only the original text is displayed.
- */
+import { useState } from 'react';
 
 const BULLET_PATTERN = /^\s*(?:[-•*·▪◦‣]|\(?\d{1,2}[.)])\s+/;
 
-/**
- * Strip markdown emphasis markers. Job boards embed **bold** and _italics_ in
- * their plain-text descriptions; rendered literally they look like leftover
- * AI output.
- */
 function stripMarkdown(value) {
   return String(value)
     .replace(/\*\*\*(.+?)\*\*\*/g, '$1')
@@ -27,7 +13,6 @@ function stripMarkdown(value) {
     .trim();
 }
 
-// "REQUIREMENTS", "What you'll do:", "Responsibilities" etc.
 const HEADING_WORDS = [
   'requirement', 'responsibilit', 'qualification', 'about', 'benefit',
   'what you', 'who you are', 'skills', 'experience', 'we offer',
@@ -41,10 +26,8 @@ function isHeading(line) {
   if (!trimmed || trimmed.length > 80) return false;
   if (BULLET_PATTERN.test(trimmed)) return false;
 
-  // A whole line wrapped in ** ** is nearly always a section title.
   if (/^\s*\*\*[^*]+\*\*\s*:?\s*$/.test(line)) return true;
 
-  // Ends with a colon and is short: almost always a section label.
   if (trimmed.endsWith(':') && trimmed.length <= 60) return true;
 
   const letters = trimmed.replace(/[^A-Za-z]/g, '');
@@ -57,7 +40,6 @@ function isHeading(line) {
   );
 }
 
-/** Group raw lines into blocks we can render. */
 function parseBlocks(rawText) {
   const text = stripMarkdown(rawText);
   const lines = text.replace(/\r\n/g, '\n').split('\n');
@@ -114,70 +96,68 @@ function parseBlocks(rawText) {
 }
 
 export default function JobDescription({ text, emptyMessage = 'No description provided for this position.' }) {
+  const [expanded, setExpanded] = useState(false);
+
   if (!text || !String(text).trim()) {
-    return <p className="jobdetail-description-text">{emptyMessage}</p>;
+    return <p className="text-xs text-zinc-500">{emptyMessage}</p>;
   }
 
-  const blocks = parseBlocks(String(text));
+  const rawString = String(text);
+  const wordCount = rawString.trim().split(/\s+/).length;
+  const isLong = wordCount > 300;
+
+  let textToRender = rawString;
+  if (isLong && !expanded) {
+    const words = rawString.trim().split(/\s+/).slice(0, 300);
+    textToRender = words.join(' ') + '...';
+  }
+
+  const blocks = parseBlocks(textToRender);
 
   return (
-    <div className="jobdetail-description">
-      {blocks.map((block, index) => {
-        if (block.type === 'h') {
+    <div className="space-y-4">
+      <div className="space-y-3 text-xs leading-relaxed text-zinc-300">
+        {blocks.map((block, index) => {
+          if (block.type === 'h') {
+            return (
+              <h3
+                key={index}
+                className="text-sm font-bold text-white tracking-tight pt-2 pb-1 border-b border-white/5"
+              >
+                {block.text}
+              </h3>
+            );
+          }
+
+          if (block.type === 'ul') {
+            return (
+              <ul key={index} className="list-disc list-inside space-y-1.5 text-zinc-300 pl-2">
+                {block.items.map((item, i) => (
+                  <li key={i} className="leading-relaxed">
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            );
+          }
+
           return (
-            <h3
-              key={index}
-              style={{
-                fontSize: 13,
-                fontWeight: 600,
-                color: '#e8e8f0',
-                margin: index === 0 ? '0 0 8px' : '20px 0 8px',
-                letterSpacing: 0.2,
-              }}
-            >
+            <p key={index} className="leading-relaxed text-zinc-300">
               {block.text}
-            </h3>
+            </p>
           );
-        }
+        })}
+      </div>
 
-        if (block.type === 'ul') {
-          return (
-            <ul
-              key={index}
-              style={{
-                margin: '0 0 14px',
-                paddingLeft: 18,
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 6,
-              }}
-            >
-              {block.items.map((item, i) => (
-                <li
-                  key={i}
-                  style={{ fontSize: 13, color: '#9090a8', lineHeight: 1.6 }}
-                >
-                  {item}
-                </li>
-              ))}
-            </ul>
-          );
-        }
-
-        return (
-          <p
-            key={index}
-            style={{
-              fontSize: 13,
-              color: '#9090a8',
-              lineHeight: 1.7,
-              margin: '0 0 14px',
-            }}
-          >
-            {block.text}
-          </p>
-        );
-      })}
+      {isLong && (
+        <button
+          type="button"
+          onClick={() => setExpanded((prev) => !prev)}
+          className="text-xs font-bold text-purple-400 hover:text-purple-300 transition-colors pt-2 focus:outline-none"
+        >
+          {expanded ? 'Show less ↑' : 'Show more ↓'}
+        </button>
+      )}
     </div>
   );
 }

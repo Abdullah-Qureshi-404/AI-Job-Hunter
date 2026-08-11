@@ -18,7 +18,6 @@ export default function ConfirmDialog({
   onConfirm,
   onCancel,
 }) {
-  // Escape to dismiss, and don't let the page scroll behind the dialog.
   useEffect(() => {
     if (!open) return undefined;
 
@@ -42,59 +41,31 @@ export default function ConfirmDialog({
     <div
       role="presentation"
       onClick={() => !busy && onCancel?.()}
-      style={{
-        position: 'fixed',
-        inset: 0,
-        background: 'rgba(6, 6, 12, 0.72)',
-        backdropFilter: 'blur(2px)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 1000,
-        padding: 20,
-      }}
+      className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center z-50 p-4"
     >
       <div
         role="alertdialog"
         aria-modal="true"
         aria-label={title}
         onClick={(e) => e.stopPropagation()}
-        style={{
-          width: '100%',
-          maxWidth: 400,
-          background: '#14141f',
-          border: '0.5px solid #2a2a3a',
-          borderRadius: 12,
-          padding: '22px 22px 18px',
-          boxShadow: '0 18px 50px rgba(0,0,0,0.5)',
-          fontFamily: "'Inter', sans-serif",
-        }}
+        className="w-full max-w-md glass-card p-6 border border-white/10 shadow-2xl space-y-4"
       >
-        <h2 style={{ margin: '0 0 8px', fontSize: 16, fontWeight: 600, color: '#e8e8f0' }}>
+        <h2 className="text-base font-bold text-white tracking-tight">
           {title}
         </h2>
 
         {message && (
-          <p style={{ margin: '0 0 20px', fontSize: 13, lineHeight: 1.55, color: '#9090a8' }}>
+          <p className="text-xs text-zinc-400 leading-relaxed">
             {message}
           </p>
         )}
 
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+        <div className="flex items-center justify-end gap-3 pt-2">
           <button
             type="button"
             onClick={onCancel}
             disabled={busy}
-            style={{
-              height: 36,
-              padding: '0 16px',
-              background: 'none',
-              border: '0.5px solid #2a2a3a',
-              borderRadius: 8,
-              color: '#9090a8',
-              fontSize: 13,
-              cursor: busy ? 'default' : 'pointer',
-            }}
+            className="px-4 py-2 rounded-xl text-xs font-semibold text-zinc-400 bg-white/5 border border-white/10 hover:bg-white/10 transition-all disabled:opacity-50"
           >
             {cancelLabel}
           </button>
@@ -104,18 +75,11 @@ export default function ConfirmDialog({
             onClick={onConfirm}
             disabled={busy}
             autoFocus
-            style={{
-              height: 36,
-              padding: '0 18px',
-              background: destructive ? '#e05260' : '#7c6ff7',
-              border: 'none',
-              borderRadius: 8,
-              color: '#fff',
-              fontSize: 13,
-              fontWeight: 500,
-              opacity: busy ? 0.7 : 1,
-              cursor: busy ? 'default' : 'pointer',
-            }}
+            className={`px-5 py-2 rounded-xl text-xs font-bold text-white transition-all shadow-lg disabled:opacity-50 ${
+              destructive
+                ? 'bg-rose-600 hover:bg-rose-500 shadow-rose-950/40'
+                : 'bg-purple-600 hover:bg-purple-500 shadow-purple-950/40'
+            }`}
           >
             {busy ? 'Working…' : confirmLabel}
           </button>

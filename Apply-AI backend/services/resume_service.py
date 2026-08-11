@@ -24,6 +24,7 @@ from fastapi import HTTPException, UploadFile
 
 from core.supabase import supabase
 from rag.embedder import delete_resume_vectors, embed_resume, extract_text
+from rag.layout import analyze_layout
 
 
 logger = logging.getLogger(__name__)
@@ -48,10 +49,54 @@ def safe_filename(filename: str) -> str:
     return cleaned or "resume.pdf"
 
 
+def embed_resume_safely(**kwargs):
+    """
+    Background embedding wrapper.
+
+    Runs after the HTTP response has been sent, so failures cannot be raised
+    to the client. They are logged and left with is_embedded=False, which the
+    status endpoint reports.
+    """
+
+    try:
+        embed_resume(**kwargs)
+    except Exception:
+        logger.exception(
+            "Background embedding failed for resume %s",
+            kwargs.get("resume_id"),
+        )
+
+
+def get_resume_status(user_id: str, resume_id: str):
+    """Report whether a resume has finished embedding."""
+
+    response = (
+        supabase.table("resumes")
+        .select("id,file_name,is_embedded,resume_type")
+        .eq("id", resume_id)
+        .eq("user_id", user_id)
+        .execute()
+    )
+
+    if not response.data:
+        raise HTTPException(status_code=404, detail="Resume not found.")
+
+    row = response.data[0]
+
+    return {
+        "resume_id": row["id"],
+        "file_name": row["file_name"],
+        "resume_type": row.get("resume_type"),
+        "is_embedded": bool(row.get("is_embedded")),
+        "status": "ready" if row.get("is_embedded") else "processing",
+    }
+
+
 def upload_resume(
     user_id: str,
     file: UploadFile,
     resume_type: str,
+    background_tasks=None,
 ):
     """
     Upload a user's resume.
@@ -95,20 +140,49 @@ def upload_resume(
             )
 
         # -----------------------------
+        # Validate magic bytes (%PDF-)
+        # -----------------------------
+        if not file_bytes.startswith(b"%PDF-"):
+            raise HTTPException(
+                status_code=400,
+                detail="File header does not match a valid PDF document."
+            )
+
+        # -----------------------------
         # Extract raw resume text
         # -----------------------------
         # A scanned/image-only PDF yields no text. That is not fatal, but it
         # must be reported: an empty extraction silently produces an empty
         # /profile/ response later.
-        extracted_text = ""
-        extraction_warning = None
+        # A PDF with no text layer (a photo or scan exported to PDF) is
+        # useless downstream: it cannot be embedded, so it contributes nothing
+        # to matching, profile extraction or resume generation. Reject it here
+        # rather than storing a file that silently does nothing.
         try:
             extracted_text = extract_text(file_bytes)
         except Exception as error:
             logger.warning("Text extraction failed for %s: %s", file.filename, error)
-            extraction_warning = (
-                "No text could be read from this PDF. If it is a scan, "
-                "upload a text-based version so skills can be extracted."
+            raise HTTPException(
+                status_code=422,
+                detail=(
+                    "No text could be read from this PDF - it looks like a "
+                    "scan or photo. Export your resume as a real PDF from "
+                    "Word, Google Docs or Overleaf so its text can be read."
+                ),
+            )
+
+        # Structure of the user's own resume: section order, column count,
+        # typeface family. Used to render the generated resume in a shape that
+        # matches theirs rather than a fixed house template.
+        layout = analyze_layout(file_bytes, extracted_text)
+
+        if len(extracted_text.split()) < 50:
+            raise HTTPException(
+                status_code=422,
+                detail=(
+                    "Only a few words could be read from this PDF. Please "
+                    "upload a text-based resume rather than an image."
+                ),
             )
 
         # -----------------------------
@@ -176,9 +250,30 @@ def upload_resume(
         # ------------------------------------
         # Embedding
         # ------------------------------------
-        # On failure, undo the storage upload and the metadata row. Leaving
-        # them behind meant every retry added another orphaned copy, and those
-        # copies then all fed the profile prompt.
+        # Embedding costs five serial network hops plus CPU-bound parsing.
+        # Running it inline made upload take tens of seconds and tied up a
+        # threadpool worker for the whole time. Hand it to the caller to run
+        # in the background; the client polls /resumes/{id}/status.
+        if background_tasks is not None:
+            background_tasks.add_task(
+                embed_resume_safely,
+                storage_path=storage_path,
+                user_id=user_id,
+                resume_type=resume_type,
+                source_file=unique_name,
+                resume_id=resume["id"],
+            )
+
+            return {
+                "resume_id": resume["id"],
+                "file_name": unique_name,
+                "resume_type": resume_type,
+                "status": "processing",
+                "is_embedded": False,
+                "layout": layout,
+            }
+
+        # Synchronous path, used by scripts and tests.
         try:
             embedding_result = embed_resume(
                 source_file=unique_name,
@@ -199,18 +294,15 @@ def upload_resume(
                 ),
             )
 
-        result = {
+        return {
             "resume_id": resume["id"],
             "file_name": unique_name,
             "resume_type": resume_type,
             "status": "uploaded_and_embedded",
+            "is_embedded": True,
             "embedding": embedding_result,
+            "layout": layout,
         }
-
-        if extraction_warning:
-            result["warning"] = extraction_warning
-
-        return result
 
     except HTTPException:
         raise

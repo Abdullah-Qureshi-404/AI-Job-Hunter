@@ -20,6 +20,7 @@ from core.groq_client import (
 )
 
 from core.json_utils import clean_json_response
+from core.groq_errors import raise_friendly_groq_error
 
 
 logger = logging.getLogger(__name__)
@@ -126,12 +127,13 @@ def analyze_job_description(
         )
 
 
+    except HTTPException:
+        raise
+
     except Exception as error:
 
-        raise HTTPException(
-            status_code=500,
-            detail="Job analysis failed."
-        ) from error
+        logger.exception("Job analysis failed")
+        raise_friendly_groq_error(error, "analyze this job description")
 
 
 def analyze_job_from_image(
@@ -200,7 +202,4 @@ def analyze_job_from_image(
         # Log the real cause. A generic message here previously hid a
         # NameError for several debugging sessions.
         logger.exception("Image job analysis failed")
-        raise HTTPException(
-            status_code=500,
-            detail="Could not read the job posting from that image."
-        ) from error
+        raise_friendly_groq_error(error, "read the job posting from that image")

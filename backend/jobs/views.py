@@ -12,8 +12,10 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .models import Job
+from .models import SavedJob
 from .serializers import JobSerializer
 from .serializers import JobListSerializer
+from .serializers import SavedJobSerializer
 
 from jobs.scrapers.orchestrator import run_all_scrapers
 from jobs.logger import get_scraper_logger
@@ -54,13 +56,10 @@ class JobListView(generics.ListAPIView):
     def filter_queryset(self, queryset):
         queryset = super().filter_queryset(queryset)
 
-        # OrderingFilter applies `self.ordering` (date desc) after our
-        # get_queryset ran, which would discard the relevance ranking. Put it
-        # back, unless the client asked for an explicit ordering.
         if self._search_terms() and not self.request.query_params.get("ordering"):
             queryset = queryset.order_by(
-                "-relevance",
                 F("date_posted").desc(nulls_last=True),
+                F("date_fetched").desc(),
             )
 
         return queryset
@@ -77,32 +76,7 @@ class JobListView(generics.ListAPIView):
         if not terms:
             return queryset
 
-        # Rank results instead of returning them in date order. A search for
-        # "python" should lead with jobs whose *title* says Python, not
-        # whichever matching row happens to be newest.
-        relevance = Value(0, output_field=IntegerField())
-
-        for term in terms:
-            relevance = relevance + Case(
-                When(title__icontains=term, then=Value(10)),
-                default=Value(0),
-                output_field=IntegerField(),
-            ) + Case(
-                When(company__icontains=term, then=Value(5)),
-                default=Value(0),
-                output_field=IntegerField(),
-            ) + Case(
-                When(requirements__icontains=term, then=Value(3)),
-                default=Value(0),
-                output_field=IntegerField(),
-            ) + Case(
-                When(description__icontains=term, then=Value(1)),
-                default=Value(0),
-                output_field=IntegerField(),
-            )
-
-        # Any term matching anywhere keeps the row - so a loosely related job
-        # still appears, just below the strong matches.
+        # Filter matching jobs and order strictly by newest posted/fetched date
         matches_any = Q()
         for term in terms:
             matches_any |= (
@@ -115,8 +89,10 @@ class JobListView(generics.ListAPIView):
 
         return (
             queryset.filter(matches_any)
-            .annotate(relevance=relevance)
-            .order_by("-relevance", F("date_posted").desc(nulls_last=True))
+            .order_by(
+                F("date_posted").desc(nulls_last=True),
+                F("date_fetched").desc(),
+            )
         )
 
     filterset_fields = [
@@ -126,8 +102,6 @@ class JobListView(generics.ListAPIView):
         "is_remote",
     ]
 
-    # SearchFilter is bypassed for `search` (handled above with ranking), so
-    # it is intentionally not listed here.
     search_fields = []
 
     ordering_fields = [
@@ -136,9 +110,10 @@ class JobListView(generics.ListAPIView):
         "salary_max",
     ]
 
-    # nulls_last keeps undated scraper rows off the front page. Postgres sorts
-    # NULL first on a plain DESC.
-    ordering = [F("date_posted").desc(nulls_last=True)]
+    ordering = [
+        F("date_posted").desc(nulls_last=True),
+        F("date_fetched").desc(),
+    ]
 
 
 # Returns details for a single job.
@@ -150,18 +125,31 @@ class JobDetailView(generics.RetrieveAPIView):
         return jobs_with_match_score(self.request)
 
 
+from rest_framework.permissions import IsAdminUser
+
+
 # Triggers fetching jobs from all scrapers.
 class FetchJobsView(APIView):
+    permission_classes = [IsAdminUser]
+    throttle_scope = "scrapers"
 
     def post(self, request):
         """
         Triggers job fetching from all scrapers.
         POST /api/jobs/fetch/
+        Restricted to admin users only.
         """
+        from jobs.scheduler import _scrape_lock
+
+        if not _scrape_lock.acquire(blocking=False):
+            return Response({
+                "success": False,
+                "error": "A job scraper run is already in progress. Please wait for it to finish."
+            }, status=409)
 
         try:
-            print("🚀 Job fetch triggered via API")
-            logger.info("Job fetch triggered via API")
+            print("🚀 Job fetch triggered via Admin API")
+            logger.info("Job fetch triggered via Admin API")
 
             # Run all scrapers through orchestrator
             result = run_all_scrapers()
@@ -190,10 +178,14 @@ class FetchJobsView(APIView):
                 "success": False,
                 "error": str(e)
             }, status=500)
+        finally:
+            _scrape_lock.release()
+
 
 
 # Analyzes job description using ApplyAI service.
 class AnalyzeJobView(APIView):
+    throttle_scope = "ai_services"
 
     def post(self, request):
         """
@@ -220,8 +212,8 @@ class AnalyzeJobView(APIView):
 
         if result is None:
             return Response(
-                {"error": "Job analysis service unavailable or failed."},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                {"error": "AI service is temporarily unavailable. Please try again later."},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
             )
 
         return Response(result, status=status.HTTP_200_OK)
@@ -229,6 +221,7 @@ class AnalyzeJobView(APIView):
 
 # Generates tailored resume content using ApplyAI service.
 class GenerateResumeView(APIView):
+    throttle_scope = "ai_services"
 
     def post(self, request):
         """
@@ -237,10 +230,24 @@ class GenerateResumeView(APIView):
         from rest_framework import status
         from .serializers import JobAnalyzeSerializer
         from services.apply_ai_client import ApplyAIError, generate_resume
+        from .ai_quota import check_and_increment_quota, AI_DAILY_QUOTA
 
         serializer = JobAnalyzeSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        # Per-user daily AI cost quota (separate from request throttle)
+        uid = getattr(request.user, "supabase_uid", None)
+        if uid:
+            allowed, count = check_and_increment_quota(uid)
+            if not allowed:
+                return Response(
+                    {
+                        "error": f"Daily AI generation limit of {AI_DAILY_QUOTA} reached. "
+                                 "Your quota resets at midnight UTC."
+                    },
+                    status=status.HTTP_429_TOO_MANY_REQUESTS,
+                )
 
         token = request.auth
         job_description = serializer.validated_data["job_description"]
@@ -255,8 +262,8 @@ class GenerateResumeView(APIView):
 
         if result is None:
             return Response(
-                {"error": "Resume generation service unavailable or failed."},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                {"error": "AI service is temporarily unavailable. Please try again later."},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
             )
 
         return Response(result, status=status.HTTP_200_OK)
@@ -264,6 +271,7 @@ class GenerateResumeView(APIView):
 
 # Generates personalized outreach email using ApplyAI service.
 class GenerateEmailView(APIView):
+    throttle_scope = "ai_services"
 
     def post(self, request):
         """
@@ -272,10 +280,24 @@ class GenerateEmailView(APIView):
         from rest_framework import status
         from .serializers import EmailGenerateSerializer
         from services.apply_ai_client import ApplyAIError, generate_email
+        from .ai_quota import check_and_increment_quota, AI_DAILY_QUOTA
 
         serializer = EmailGenerateSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        # Per-user daily AI cost quota (separate from request throttle)
+        uid = getattr(request.user, "supabase_uid", None)
+        if uid:
+            allowed, count = check_and_increment_quota(uid)
+            if not allowed:
+                return Response(
+                    {
+                        "error": f"Daily AI generation limit of {AI_DAILY_QUOTA} reached. "
+                                 "Your quota resets at midnight UTC."
+                    },
+                    status=status.HTTP_429_TOO_MANY_REQUESTS,
+                )
 
         token = request.auth
         job_title = serializer.validated_data["job_title"]
@@ -297,8 +319,8 @@ class GenerateEmailView(APIView):
 
         if result is None:
             return Response(
-                {"error": "Email generation service unavailable or failed."},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                {"error": "AI service is temporarily unavailable. Please try again later."},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
             )
 
         return Response(result, status=status.HTTP_200_OK)
@@ -306,6 +328,7 @@ class GenerateEmailView(APIView):
 
 # Analyzes job description screenshot image using ApplyAI service.
 class AnalyzeJobImageView(APIView):
+    throttle_scope = "ai_services"
 
     def post(self, request):
         """
@@ -375,4 +398,79 @@ class AnalyzeJobImageView(APIView):
 
         return Response(result, status=status.HTTP_200_OK)
 
-
+
+
+# Lists the authenticated user's saved jobs, and saves a new one.
+class SavedJobListCreateView(generics.ListCreateAPIView):
+
+    serializer_class = SavedJobSerializer
+
+    def get_queryset(self):
+        supabase_uid = getattr(self.request.user, "supabase_uid", None)
+
+        if not supabase_uid:
+            return SavedJob.objects.none()
+
+        return (
+            SavedJob.objects
+            .filter(supabase_uid=supabase_uid, job__is_active=True)
+            .select_related("job")
+        )
+
+    def create(self, request, *args, **kwargs):
+        from rest_framework import status
+
+        supabase_uid = getattr(request.user, "supabase_uid", None)
+
+        if not supabase_uid:
+            return Response(
+                {"error": "User identification missing."},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+
+        job_id = request.data.get("job") or request.data.get("job_id")
+
+        if not job_id:
+            return Response(
+                {"error": "A job id is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            job = Job.objects.get(pk=job_id, is_active=True)
+        except (Job.DoesNotExist, ValueError, TypeError):
+            return Response(
+                {"error": "That job could not be found."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        # Saving twice is not an error - just return the existing bookmark.
+        saved, created = SavedJob.objects.get_or_create(
+            supabase_uid=supabase_uid,
+            job=job,
+            defaults={"note": request.data.get("note", "")},
+        )
+
+        serializer = self.get_serializer(saved)
+
+        return Response(
+            serializer.data,
+            status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
+        )
+
+
+# Removes a saved job by the job's id (not the bookmark id), which is what
+# the job detail page has to hand.
+class SavedJobDeleteView(generics.DestroyAPIView):
+
+    serializer_class = SavedJobSerializer
+
+    lookup_field = "job_id"
+
+    def get_queryset(self):
+        supabase_uid = getattr(self.request.user, "supabase_uid", None)
+
+        if not supabase_uid:
+            return SavedJob.objects.none()
+
+        return SavedJob.objects.filter(supabase_uid=supabase_uid)

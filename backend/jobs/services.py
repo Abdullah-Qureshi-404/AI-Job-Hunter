@@ -53,3 +53,42 @@ def save_jobs_to_db(jobs):
         "skipped": skipped,
         "failed": failed,
     }
+
+
+def cleanup_old_jobs(days=60):
+    """
+    Deletes un-bookmarked jobs older than `days` (default 60).
+    Evaluated against `date_posted` first; if null, falls back to `date_fetched`.
+    """
+    from datetime import timedelta
+    from django.utils import timezone
+    from django.db.models import Q, Exists, OuterRef
+    from jobs.models import SavedJob
+
+    now = timezone.now()
+    cutoff_date = now.date() - timedelta(days=days)
+    cutoff_datetime = now - timedelta(days=days)
+
+    logger.info(f"🧹 Starting cleanup of un-bookmarked jobs older than {days} days (Cutoff: {cutoff_date}).")
+
+    saved_subquery = SavedJob.objects.filter(job=OuterRef("pk"))
+
+    old_jobs = Job.objects.annotate(
+        is_saved=Exists(saved_subquery)
+    ).filter(
+        is_saved=False
+    ).filter(
+        Q(date_posted__lt=cutoff_date) |
+        Q(date_posted__isnull=True, date_fetched__lt=cutoff_datetime)
+    )
+
+    deleted_count, _ = old_jobs.delete()
+
+    logger.info(f"✅ Retention cleanup finished: Deleted {deleted_count} jobs older than {days} days.")
+    print(f"[OK] Retention cleanup finished: Deleted {deleted_count} jobs older than {days} days.")
+
+    return {
+        "days": days,
+        "deleted_count": deleted_count,
+        "cutoff_date": str(cutoff_date),
+    }

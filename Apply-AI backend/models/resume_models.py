@@ -19,7 +19,13 @@ class ResumeResponse(BaseModel):
     resume_id: str
     file_name: str
     resume_type: str
+    # "processing" while background embedding runs, "uploaded_and_embedded"
+    # when the synchronous path was used.
     status: str
+    is_embedded: bool = False
+    # Structure detected from the uploaded PDF: section order, column count,
+    # typeface family, plus an ATS warning for two-column designs.
+    layout: dict | None = None
 
 
 class ResumeItem(BaseModel):

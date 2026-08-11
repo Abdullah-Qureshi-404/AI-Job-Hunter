@@ -82,16 +82,26 @@ export const getJobDetail = async (id) =>
  * GET /api/matcher/matches/
  * Reads previously computed matches. Cheap - use this for page loads.
  */
-export const getMatches = async ({ force = false } = {}) =>
+export const getMatches = async ({ force = false, page = 1 } = {}) =>
   cached(
-    'matches',
+    `matches:${page}`,
     async () => {
       try {
-        const response = await api.get('/api/matcher/matches/');
-        if (response.data && Array.isArray(response.data.results)) {
-          return { results: response.data.results, degraded: false };
+        const response = await api.get('/api/matcher/matches/', { params: { page } });
+        const data = response.data;
+
+        if (data && Array.isArray(data.results)) {
+          return {
+            results: data.results,
+            count: data.count ?? data.results.length,
+            next: data.next ?? null,
+            previous: data.previous ?? null,
+            degraded: false,
+          };
         }
-        return { results: Array.isArray(response.data) ? response.data : [], degraded: false };
+
+        const results = Array.isArray(data) ? data : [];
+        return { results, count: results.length, next: null, previous: null, degraded: false };
       } catch (error) {
         console.error('Error fetching matches:', error);
         throw error;
