@@ -73,6 +73,16 @@ app.add_middleware(
 )
 
 
+@app.exception_handler(Exception)
+async def global_exception_handler(request, exc):
+    logging.getLogger("main").exception("Unhandled exception on %s %s", request.method, request.url.path)
+    from fastapi.responses import JSONResponse
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "An internal server error occurred."}
+    )
+
+
 app.include_router(
     resume.router,
     prefix="/resumes",

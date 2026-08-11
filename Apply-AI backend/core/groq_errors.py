@@ -40,6 +40,6 @@ def raise_friendly_groq_error(error: Exception, action: str) -> None:
         raise HTTPException(status_code=503, detail=detail) from error
 
     raise HTTPException(
-        status_code=500,
-        detail=f"We could not {action} right now. Please try again.",
+        status_code=503,
+        detail=f"AI service is temporarily unavailable. Could not {action} right now. Please try again.",
     ) from error

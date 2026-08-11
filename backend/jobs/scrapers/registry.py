@@ -19,6 +19,7 @@ from jobs.scrapers.free_apis.jobicy import fetch_jobicy
 from jobs.scrapers.jobspy.jobspy_scraper import fetch_from_jobspy
 from jobs.scrapers.custom.mustakbil import fetch_mustakbil
 from jobs.scrapers.custom.ycombinator import fetch_ycombinator
+from jobs.scrapers.custom.rozee import fetch_rozee
 
 
 SCRAPER_REGISTRY = [
@@ -92,6 +93,12 @@ SCRAPER_REGISTRY = [
     {
         "name": "ycombinator",
         "fn": fetch_ycombinator,
+        "enabled": True,
+    },
+
+    {
+        "name": "rozee",
+        "fn": fetch_rozee,
         "enabled": True,
     },
 

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import MatchBadge from './MatchBadge';
 import { Sparkles, Bookmark, BookmarkCheck } from 'lucide-react';
+import { formatPostedDate } from '../../utils/formatDate';
 
 export default function JobCard({
   title,
@@ -8,6 +9,7 @@ export default function JobCard({
   location,
   tags = [],
   matchScore,
+  datePosted,
   isTopMatch = false,
   isSaved = false,
   onSaveToggle,
@@ -15,6 +17,7 @@ export default function JobCard({
   onMouseEnter,
 }) {
   const [savedState, setSavedState] = useState(isSaved);
+  const formattedDate = formatPostedDate(datePosted);
 
   const getInitials = (name) => {
     if (!name) return 'CO';
@@ -67,6 +70,12 @@ export default function JobCard({
 
           <p className="text-xs text-zinc-400 font-medium truncate">
             {company} <span className="text-zinc-600">•</span> {location}
+            {formattedDate && (
+              <>
+                <span className="text-zinc-600"> • </span>
+                <span className="text-purple-400/90 font-semibold">{formattedDate}</span>
+              </>
+            )}
           </p>
 
           {/* Badges */}

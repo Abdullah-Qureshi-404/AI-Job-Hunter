@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search } from 'lucide-react';
+import { Search, RotateCw } from 'lucide-react';
 import MainLayout from '../components/layout/MainLayout';
 import JobCard from '../components/ui/JobCard';
 import { getJobs, getJobDetail } from '../services/jobsApi';
 import { parseApiError } from '../services/api';
+import { invalidate } from '../services/cache';
 
 const filterCategories = [
   { label: 'All', params: {} },
@@ -84,6 +85,11 @@ export default function Jobs() {
     };
   }, [loadJobs]);
 
+  const handleReloadFromDb = () => {
+    invalidate('jobs:');
+    loadJobs();
+  };
+
   const totalPages = Math.max(1, Math.ceil(count / PAGE_SIZE));
 
   return (
@@ -136,19 +142,31 @@ export default function Jobs() {
 
         {/* Results Summary Bar */}
         <div className="flex items-center justify-between text-xs text-zinc-400 font-medium px-1">
-          <div>
-            Showing <span className="text-zinc-100 font-bold">{jobs.length}</span> of{' '}
-            <span className="text-zinc-100 font-bold">{count}</span> jobs
-            {selectedFilter !== 'All' && (
-              <span className="ml-2 text-purple-400 font-semibold">
-                • Filter: {selectedFilter}
-              </span>
-            )}
-            {appliedSearch && (
-              <span className="ml-2 text-indigo-400 font-semibold truncate max-w-[200px] inline-block align-bottom">
-                • Search: &quot;{appliedSearch}&quot;
-              </span>
-            )}
+          <div className="flex items-center gap-3">
+            <div>
+              Showing <span className="text-zinc-100 font-bold">{jobs.length}</span> of{' '}
+              <span className="text-zinc-100 font-bold">{count}</span> jobs
+              {selectedFilter !== 'All' && (
+                <span className="ml-2 text-purple-400 font-semibold">
+                  • Filter: {selectedFilter}
+                </span>
+              )}
+              {appliedSearch && (
+                <span className="ml-2 text-indigo-400 font-semibold truncate max-w-[200px] inline-block align-bottom">
+                  • Search: &quot;{appliedSearch}&quot;
+                </span>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={handleReloadFromDb}
+              disabled={loading}
+              className="flex items-center gap-1.5 px-2.5 py-1 bg-white/5 hover:bg-white/10 text-zinc-300 rounded-lg text-xs border border-white/10 transition-all duration-200 disabled:opacity-50"
+              title="Reload job listings from database"
+            >
+              <RotateCw className={`w-3 h-3 ${loading ? 'animate-spin text-purple-400' : ''}`} />
+              <span>{loading ? 'Reloading…' : 'Reload Jobs'}</span>
+            </button>
           </div>
           {totalPages > 1 && (
             <span className="text-zinc-500">Page {page} of {totalPages}</span>
@@ -183,6 +201,7 @@ export default function Jobs() {
                   location={job.location || (job.is_remote ? 'Remote' : 'N/A')}
                   tags={tags}
                   matchScore={score}
+                  datePosted={job.date_posted}
                   isTopMatch={isTop}
                   onClick={() => navigate(`/jobs/${job.id}`)}
                   onMouseEnter={() => getJobDetail(job.id).catch(() => {})}

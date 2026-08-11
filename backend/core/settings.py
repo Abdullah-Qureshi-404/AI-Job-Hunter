@@ -141,7 +141,37 @@ DATABASES = {
 
 
 # ---------------------------------------------------
-# Password Validation
+# Required environment variable validation
+# ---------------------------------------------------
+
+# Supabase is always required — the app cannot authenticate or store data
+# without it, regardless of DEBUG mode.
+_SUPABASE_URL         = os.getenv("SUPABASE_URL")
+_SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY")
+
+_missing_always = [
+    name for name, val in {
+        "SUPABASE_URL":         _SUPABASE_URL,
+        "SUPABASE_SERVICE_KEY": _SUPABASE_SERVICE_KEY,
+    }.items()
+    if not val
+]
+if _missing_always:
+    raise ImproperlyConfigured(
+        "Required environment variable(s) missing: "
+        + ", ".join(_missing_always)
+        + ". Copy backend/.env.example to backend/.env and fill in the values."
+    )
+
+# SECRET_KEY must not be the insecure default in production.
+if not DEBUG and SECRET_KEY == "django-insecure-change-this-in-production":
+    raise ImproperlyConfigured(
+        "SECRET_KEY is set to the insecure default value. "
+        "Set a strong, random SECRET_KEY in your environment before "
+        "running with DEBUG=False."
+    )
+
+
 # ---------------------------------------------------
 
 AUTH_PASSWORD_VALIDATORS = [
@@ -255,7 +285,35 @@ REST_FRAMEWORK = {
         "rest_framework.pagination.PageNumberPagination",
 
     "PAGE_SIZE": 20,
+
+    "DEFAULT_THROTTLE_CLASSES": [
+        "rest_framework.throttling.AnonRateThrottle",
+        "core.throttling.SupabaseUserRateThrottle",
+        "rest_framework.throttling.ScopedRateThrottle",
+    ],
+
+    "DEFAULT_THROTTLE_RATES": {
+        "anon": "30/minute",
+        "user": "120/minute",
+        "ai_services": "10/minute",
+        "scrapers": "5/hour",
+    },
 }
+
+# ---------------------------------------------------
+# Security & Headers Configuration
+# ---------------------------------------------------
+
+SECURE_BROWSER_XSS_FILTER = True
+SECURE_CONTENT_TYPE_NOSNIFF = True
+X_FRAME_OPTIONS = "DENY"
+
+if not DEBUG:
+    SECURE_HSTS_SECONDS = 31536000
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+    SECURE_SSL_REDIRECT = True
+
 
 
 # ---------------------------------------------------
