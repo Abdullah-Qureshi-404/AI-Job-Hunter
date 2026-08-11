@@ -10,12 +10,14 @@ import {
   ExternalLink,
   Sparkles,
   Zap,
+  Clock,
 } from 'lucide-react';
 import MainLayout from '../components/layout/MainLayout';
 import MatchBadge from '../components/ui/MatchBadge';
 import JobDescription from '../components/ui/JobDescription';
 import { getSavedJobs, toggleSavedJob } from '../services/savedJobs';
 import { getJobDetail } from '../services/jobsApi';
+import { formatPostedDate } from '../utils/formatDate';
 
 export default function JobDetail() {
   const navigate = useNavigate();
@@ -230,6 +232,14 @@ export default function JobDetail() {
                   <span className="inline-flex items-center gap-1.5 text-zinc-200">
                     <MapPin className="w-4 h-4 text-purple-400" /> {job.location || job.country || 'Remote'}
                   </span>
+                  {formatPostedDate(job.date_posted) && (
+                    <>
+                      <span className="text-zinc-600">•</span>
+                      <span className="inline-flex items-center gap-1.5 text-purple-300 font-semibold">
+                        <Clock className="w-4 h-4 text-purple-400" /> {formatPostedDate(job.date_posted)}
+                      </span>
+                    </>
+                  )}
                 </div>
               </div>
             </div>

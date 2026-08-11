@@ -140,6 +140,15 @@ def upload_resume(
             )
 
         # -----------------------------
+        # Validate magic bytes (%PDF-)
+        # -----------------------------
+        if not file_bytes.startswith(b"%PDF-"):
+            raise HTTPException(
+                status_code=400,
+                detail="File header does not match a valid PDF document."
+            )
+
+        # -----------------------------
         # Extract raw resume text
         # -----------------------------
         # A scanned/image-only PDF yields no text. That is not fatal, but it

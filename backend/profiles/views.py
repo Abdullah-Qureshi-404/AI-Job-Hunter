@@ -142,8 +142,25 @@ class CVUploadView(generics.CreateAPIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
+        if not uploaded_file.name.lower().endswith(".pdf"):
+            return Response(
+                {"error": "Only PDF files are allowed"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if uploaded_file.size > 5 * 1024 * 1024:
+            return Response(
+                {"error": "File size exceeds maximum limit of 5 MB"},
+                status=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE
+            )
+
         label = request.data.get("label") or uploaded_file.name
         file_bytes = uploaded_file.read()
+        if not file_bytes.startswith(b"%PDF-"):
+            return Response(
+                {"error": "Uploaded file header is not a valid PDF document"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
         uploaded_file.seek(0)
 
         cv = CV.objects.create(

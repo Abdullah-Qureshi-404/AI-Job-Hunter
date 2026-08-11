@@ -77,3 +77,7 @@ def fetch_rozee_jobs():
 
 
     return jobs
+
+
+# Backwards-compatible alias expected by registry
+fetch_rozee = fetch_rozee_jobs

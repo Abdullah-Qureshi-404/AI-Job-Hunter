@@ -5,6 +5,7 @@ import MainLayout from '../components/layout/MainLayout';
 import { getMatches, matchJobs } from '../services/jobsApi';
 import { getProfile } from '../services/profileApi';
 import { getCVs } from '../services/resumeApi';
+import { formatPostedDate } from '../utils/formatDate';
 
 // Sub-component: Animated typing effect subtitle
 function TypingSubtitle({ text = 'Your AI is actively matching jobs...' }) {
@@ -419,6 +420,12 @@ export default function Dashboard() {
                         </h3>
                         <p className="text-xs text-zinc-400 font-medium truncate">
                           {job.company} • {job.location || (job.is_remote ? 'Remote' : 'N/A')}
+                          {formatPostedDate(job.date_posted) && (
+                            <>
+                              <span className="text-zinc-600"> • </span>
+                              <span className="text-purple-400/90 font-semibold">{formatPostedDate(job.date_posted)}</span>
+                            </>
+                          )}
                         </p>
 
                         {/* Tag Badges */}
