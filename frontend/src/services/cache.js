@@ -1,37 +1,45 @@
 /**
- * Tiny request cache.
+ * Tiny request cache with Stale-While-Revalidate (SWR) support.
  *
- * Every page previously refetched on mount, so navigating Dashboard -> Jobs ->
- * Dashboard re-ran the same queries from scratch. This keeps results for a
- * short TTL and de-duplicates concurrent calls for the same key.
- *
- * Deliberately ~60 lines rather than a data-fetching library: the app has a
- * handful of endpoints and no need for a dependency.
+ * Serves cached results instantly upon navigation while updating in the background.
+ * Keeps results for sensible TTLs and de-duplicates concurrent calls for the same key.
  */
 
 const store = new Map();
 const inFlight = new Map();
 
-const DEFAULT_TTL = 60_000; // 1 minute
+const DEFAULT_TTL = 120_000; // 2 minutes
+
+/**
+ * Return current cached value synchronously if present (stale or fresh).
+ */
+export function getCachedValue(key) {
+  const hit = store.get(key);
+  return hit ? hit.value : undefined;
+}
 
 /**
  * Run `loader` unless a fresh cached value exists.
+ * When `swr: true` and a stale cached value exists, returns stale value immediately
+ * and revalidates in the background.
  *
  * @param {string} key    cache key; include params that change the result
  * @param {Function} loader  async function producing the value
- * @param {Object} options   { ttl, force }
+ * @param {Object} options   { ttl, force, swr }
  */
-export async function cached(key, loader, { ttl = DEFAULT_TTL, force = false } = {}) {
-  if (!force) {
-    const hit = store.get(key);
-    if (hit && hit.expiresAt > Date.now()) {
-      return hit.value;
-    }
+export async function cached(key, loader, { ttl = DEFAULT_TTL, force = false, swr = true } = {}) {
+  const hit = store.get(key);
+  const isFresh = hit && hit.expiresAt > Date.now();
 
-    // Someone else is already loading this exact key - share their promise
-    // instead of firing a second identical request.
-    const pending = inFlight.get(key);
-    if (pending) return pending;
+  if (hit && isFresh && !force) {
+    return hit.value;
+  }
+
+  // De-duplicate in-flight requests for the exact same key
+  const pending = inFlight.get(key);
+  if (pending && !force) {
+    if (hit && swr) return hit.value;
+    return pending;
   }
 
   const promise = (async () => {
@@ -45,6 +53,12 @@ export async function cached(key, loader, { ttl = DEFAULT_TTL, force = false } =
   })();
 
   inFlight.set(key, promise);
+
+  // Stale-While-Revalidate: return stale hit immediately if available
+  if (hit && swr && !force) {
+    return hit.value;
+  }
+
   return promise;
 }
 
@@ -65,3 +79,4 @@ export function clearCache() {
   store.clear();
   inFlight.clear();
 }
+

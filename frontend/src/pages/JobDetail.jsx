@@ -19,11 +19,16 @@ import { getSavedJobs, toggleSavedJob } from '../services/savedJobs';
 import { getJobDetail } from '../services/jobsApi';
 import { formatPostedDate } from '../utils/formatDate';
 
+import { getCachedValue } from '../services/cache';
+import { JobDetailSkeleton } from '../components/ui/Skeleton';
+
 export default function JobDetail() {
   const navigate = useNavigate();
   const { id } = useParams();
-  const [job, setJob] = useState(null);
-  const [loading, setLoading] = useState(true);
+
+  const cachedJob = getCachedValue(`job:${id}`);
+  const [job, setJob] = useState(cachedJob || null);
+  const [loading, setLoading] = useState(!cachedJob);
   const [error, setError] = useState(null);
   const [isSaved, setIsSaved] = useState(false);
   const [savingBookmark, setSavingBookmark] = useState(false);
@@ -55,7 +60,9 @@ export default function JobDetail() {
 
     const fetchDetail = async () => {
       try {
-        setLoading(true);
+        if (!cachedJob) {
+          setLoading(true);
+        }
         setError(null);
         const data = await getJobDetail(id);
         if (isMounted) {
@@ -100,13 +107,12 @@ export default function JobDetail() {
           >
             <ArrowLeft className="w-4 h-4" /> Back to jobs
           </button>
-          <div className="glass-card p-12 text-center text-zinc-400 text-sm">
-            Loading job details...
-          </div>
+          <JobDetailSkeleton />
         </div>
       </MainLayout>
     );
   }
+
 
   if (error || !job) {
     return (

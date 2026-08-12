@@ -53,6 +53,7 @@ export default function Apply() {
   const [editableResume, setEditableResume] = useState(null);
   const [resumeHeader, setResumeHeader] = useState({ name: '', contact: '' });
 
+  const [progressMessage, setProgressMessage] = useState('');
   const [error, setError] = useState(null);
 
   const steps = [
@@ -93,6 +94,8 @@ export default function Apply() {
 
   // Handle Step 1 -> Step 2 (Analyze job & Generate resume)
   const handleAnalyzeJob = async () => {
+    if (analyzing || generatingResumeState) return;
+
     setError(null);
     if (mode === 'text' && !jobText.trim()) {
       setError('Please enter a job description before analyzing.');
@@ -109,6 +112,7 @@ export default function Apply() {
 
     try {
       setAnalyzing(true);
+      setProgressMessage('Analyzing job requirements with AI...');
       let analysis = null;
 
       if (mode === 'text') {
@@ -131,6 +135,7 @@ export default function Apply() {
           ].filter(Boolean).join('\n');
 
       setGeneratingResumeState(true);
+      setProgressMessage('Generating tailored resume bullets...');
       const resData = await generateResume({
         job_description: resumeJd || 'Software Engineer role',
       });
@@ -151,12 +156,14 @@ export default function Apply() {
       }
     } catch (err) {
       console.error('Analysis / Resume generation failed:', err);
-      setError(parseApiError(err) || 'Analysis failed. Paste a fuller job description and ensure Apply AI is running on :8001.');
+      setError(parseApiError(err) || 'AI analysis request timed out or failed. Please check connection and try again.');
     } finally {
       setAnalyzing(false);
       setGeneratingResumeState(false);
+      setProgressMessage('');
     }
   };
+
 
   // Handle Step 2 -> Step 3 (Generate Email)
   const handleGenerateEmail = async () => {

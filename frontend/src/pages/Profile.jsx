@@ -7,6 +7,9 @@ import { getMatches } from '../services/jobsApi';
 import { parseApiError } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
+import { getCachedValue } from '../services/cache';
+import { ProfileSkeleton } from '../components/ui/Skeleton';
+
 const emptyForm = {
   name: '',
   email: '',
@@ -21,8 +24,11 @@ const emptyForm = {
 export default function Profile() {
   const { user } = useAuth();
 
-  const [profile, setProfile] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const cachedProf = getCachedValue('profile');
+  const initialProf = Array.isArray(cachedProf) && cachedProf.length > 0 ? cachedProf[0] : (cachedProf?.id ? cachedProf : null);
+
+  const [profile, setProfile] = useState(initialProf);
+  const [loading, setLoading] = useState(!initialProf);
   const [error, setError] = useState(null);
   const [isCreating, setIsCreating] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -38,7 +44,9 @@ export default function Profile() {
 
   const fetchProfileData = async () => {
     try {
-      setLoading(true);
+      if (!initialProf) {
+        setLoading(true);
+      }
       setError(null);
       const data = await getProfile();
       if (Array.isArray(data) && data.length > 0) {
@@ -59,6 +67,7 @@ export default function Profile() {
   useEffect(() => {
     fetchProfileData();
   }, []);
+
 
   useEffect(() => {
     setFormData((prev) => ({
@@ -117,12 +126,11 @@ export default function Profile() {
   if (loading) {
     return (
       <MainLayout title="Profile">
-        <div className="glass-card p-12 text-center text-zinc-400 text-sm">
-          Loading profile...
-        </div>
+        <ProfileSkeleton />
       </MainLayout>
     );
   }
+
 
   if (error && !profile && !isEditing) {
     return (

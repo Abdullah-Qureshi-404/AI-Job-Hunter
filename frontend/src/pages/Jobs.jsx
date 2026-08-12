@@ -5,7 +5,8 @@ import MainLayout from '../components/layout/MainLayout';
 import JobCard from '../components/ui/JobCard';
 import { getJobs, getJobDetail } from '../services/jobsApi';
 import { parseApiError } from '../services/api';
-import { invalidate } from '../services/cache';
+import { JobCardSkeleton } from '../components/ui/Skeleton';
+
 
 const filterCategories = [
   { label: 'All', params: {} },
@@ -176,10 +177,13 @@ export default function Jobs() {
         {/* Job Grid */}
         <div className="space-y-3">
           {loading ? (
-            <div className="glass-card p-12 text-center text-zinc-400 text-sm">
-              Loading jobs...
+            <div className="space-y-3">
+              {[...Array(6)].map((_, i) => (
+                <JobCardSkeleton key={i} />
+              ))}
             </div>
           ) : error ? (
+
             <div className="glass-card p-6 text-center text-rose-400 text-sm font-semibold border-rose-500/30">
               {error}
             </div>

@@ -6,6 +6,8 @@ import { getMatches, matchJobs } from '../services/jobsApi';
 import { getProfile } from '../services/profileApi';
 import { getCVs } from '../services/resumeApi';
 import { formatPostedDate } from '../utils/formatDate';
+import { getCachedValue } from '../services/cache';
+import { JobCardSkeleton, StatCardSkeleton } from '../components/ui/Skeleton';
 
 // Sub-component: Animated typing effect subtitle
 function TypingSubtitle({ text = 'Your AI is actively matching jobs...' }) {
@@ -115,13 +117,20 @@ function CircularArcGauge({ score, size = 52 }) {
 export default function Dashboard() {
   const navigate = useNavigate();
 
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const cachedProf = getCachedValue('profile');
+  const cachedCvs = getCachedValue('cvs');
+  const cachedMatches = getCachedValue('matches:1');
 
-  const [profile, setProfile] = useState(null);
-  const [cvs, setCvs] = useState([]);
-  const [matchedJobs, setMatchedJobs] = useState([]);
-  const [matchedCount, setMatchedCount] = useState(0);
+  const initialProf = Array.isArray(cachedProf) && cachedProf.length > 0 ? cachedProf[0] : (cachedProf?.id ? cachedProf : null);
+  const initialCvs = Array.isArray(cachedCvs) ? cachedCvs : [];
+  const initialMatches = cachedMatches?.results || [];
+
+  const [profile, setProfile] = useState(initialProf);
+  const [cvs, setCvs] = useState(initialCvs);
+  const [matchedJobs, setMatchedJobs] = useState(initialMatches);
+  const [matchedCount, setMatchedCount] = useState(cachedMatches?.count || initialMatches.length);
+  const [loading, setLoading] = useState(!initialProf && !cachedMatches);
+  const [error, setError] = useState(null);
   const [notice, setNotice] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
   const [lastSyncTime, setLastSyncTime] = useState('Just now');
@@ -131,7 +140,9 @@ export default function Dashboard() {
 
     const fetchDashboardData = async () => {
       try {
-        setLoading(true);
+        if (!initialProf && !cachedMatches) {
+          setLoading(true);
+        }
         setError(null);
 
         // Fetch User Profile
@@ -188,6 +199,7 @@ export default function Dashboard() {
       isMounted = false;
     };
   }, []);
+
 
   const handleRefreshMatches = async () => {
     setRefreshing(true);
