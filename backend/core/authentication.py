@@ -15,11 +15,17 @@ class SupabaseUser:
     def __init__(self, supabase_uid: str, email: str):
         self.id = supabase_uid
         self.supabase_uid = supabase_uid
+        self.pk = supabase_uid
         self.email = email
         self.is_authenticated = True
 
+    @property
+    def pk(self):
+        return self.supabase_uid
+
     def __str__(self):
         return f"SupabaseUser({self.email})"
+
 
 
 class SupabaseAuthentication(authentication.BaseAuthentication):
