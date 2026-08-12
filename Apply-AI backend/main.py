@@ -119,6 +119,14 @@ app.include_router(
 
 
 
+@app.get("/health")
+def health():
+    """
+    Unauthenticated health check endpoint.
+    """
+    return {"status": "ok"}
+
+
 @app.get("/")
 def health_check():
     """
@@ -127,4 +135,4 @@ def health_check():
 
     return {
         "status": "ApplyAI backend running"
-    }
+    }

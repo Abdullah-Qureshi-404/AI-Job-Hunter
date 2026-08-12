@@ -89,68 +89,120 @@ def generate_resume(token: str, job_description: str):
 #         return None
 
 
+import time
+from datetime import datetime, timezone
+
+
+def check_apply_ai_health():
+    """
+    Temporary diagnostic function to verify connectivity from Django to FastAPI GET /health.
+    Logs URL, status code, response body, and exception traceback without logging secrets.
+    """
+    url = f"{APPLY_AI_URL}/health"
+    logger.info("Executing diagnostic check GET %s", url)
+    start_time = time.time()
+    try:
+        with httpx.Client(timeout=10.0) as client:
+            response = client.get(url)
+        duration = time.time() - start_time
+        logger.info(
+            "FastAPI Health Check SUCCESS | URL: %s | Status: %s | Duration: %.3fs | Body: %s",
+            url,
+            response.status_code,
+            duration,
+            response.text,
+        )
+        return {
+            "url": url,
+            "status_code": response.status_code,
+            "body": response.text,
+            "duration": duration,
+        }
+    except Exception as exc:
+        duration = time.time() - start_time
+        logger.exception(
+            "FastAPI Health Check FAILED | URL: %s | Duration: %.3fs | Exception: %s",
+            url,
+            duration,
+            type(exc).__name__,
+        )
+        return {
+            "url": url,
+            "error": str(exc),
+            "exception_type": type(exc).__name__,
+            "duration": duration,
+        }
+
+
 def analyze_job(token: str, job_description: str):
     """
     Calls ApplyAI FastAPI service to analyze a job description.
     Endpoint: POST /job/analyze
     """
-
     url = f"{APPLY_AI_URL}/job/analyze"
     headers = _get_auth_header(token)
     payload = {"job_description": job_description}
 
-    logger.warning("========== ANALYZE JOB DEBUG ==========")
-    logger.warning("ApplyAI URL: %s", url)
-    logger.warning("Token present: %s", bool(token))
-    logger.warning("Authorization header present: %s", bool(headers))
-    logger.warning("Job description length: %s", len(job_description))
+    has_auth_header = bool(headers.get("Authorization"))
+    start_time = time.time()
+    start_timestamp = datetime.now(timezone.utc).isoformat()
+
+    logger.info(
+        "AnalyzeJob Start | APPLY_AI_URL: %s | Request URL: %s | Auth Header Present: %s | Timestamp: %s",
+        APPLY_AI_URL,
+        url,
+        has_auth_header,
+        start_timestamp,
+    )
 
     try:
-        logger.warning("Sending request to FastAPI...")
+        with httpx.Client(timeout=60.0) as client:
+            logger.info("Immediately BEFORE client.post() to URL: %s", url)
+            response = client.post(url, headers=headers, json=payload)
+            logger.info("Immediately AFTER client.post() to URL: %s", url)
 
-        with httpx.Client(timeout=120.0) as client:
-            response = client.post(
-                url,
-                headers=headers,
-                json=payload,
-            )
-
-        logger.warning(
-            "FastAPI responded: status=%s body=%s",
+        duration = time.time() - start_time
+        logger.info(
+            "AnalyzeJob Response | Status: %s | Duration: %.3fs | Body: %s",
             response.status_code,
-            response.text[:1000],
+            duration,
+            response.text,
         )
 
         _raise_for_apply_ai(response)
-
-        result = response.json()
-
-        logger.warning("FastAPI JSON parsed successfully")
-        logger.warning("========== ANALYZE JOB SUCCESS ==========")
-
-        return result
+        return response.json()
 
     except ApplyAIError as exc:
+        duration = time.time() - start_time
         logger.exception(
-            "FastAPI returned HTTP error: status=%s detail=%s",
+            "AnalyzeJob ApplyAIError (%s) | Duration: %.3fs | Status: %s | Detail: %s",
+            type(exc).__name__,
+            duration,
             exc.status_code,
             exc.detail,
         )
         raise
 
     except httpx.HTTPError as exc:
+        duration = time.time() - start_time
         logger.exception(
-            "HTTPX ERROR while calling FastAPI: %s",
-            exc,
+            "AnalyzeJob httpx.HTTPError (%s) | Duration: %.3fs | URL: %s",
+            type(exc).__name__,
+            duration,
+            url,
         )
         return None
 
     except Exception as exc:
+        duration = time.time() - start_time
         logger.exception(
-            "UNEXPECTED ERROR while analyzing job: %s",
-            exc,
+            "AnalyzeJob Exception (%s) | Duration: %.3fs | URL: %s",
+            type(exc).__name__,
+            duration,
+            url,
         )
         return None
+
 
 def get_profile(token: str):
     """

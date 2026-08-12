@@ -296,6 +296,20 @@ class AnalyzeJobView(APIView):
             status=status.HTTP_200_OK
         )
 
+
+class DiagnosticHealthView(APIView):
+    """
+    Temporary diagnostic view to test connection from Django to FastAPI /health endpoint.
+    """
+    permission_classes = []
+    authentication_classes = []
+
+    def get(self, request):
+        from services.apply_ai_client import check_apply_ai_health
+        data = check_apply_ai_health()
+        return Response(data)
+
+
     
 # Generates tailored resume content using ApplyAI service.
 class GenerateResumeView(APIView):

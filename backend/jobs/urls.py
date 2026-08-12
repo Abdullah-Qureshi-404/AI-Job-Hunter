@@ -10,7 +10,15 @@ from .views import AnalyzeJobImageView
 from .views import SavedJobListCreateView
 from .views import SavedJobDeleteView
 
+from .views import DiagnosticHealthView
+
 urlpatterns = [
+    path(
+        "health-check/",
+        DiagnosticHealthView.as_view(),
+        name="apply-ai-health-check",
+    ),
+
 
     path(
         "",
