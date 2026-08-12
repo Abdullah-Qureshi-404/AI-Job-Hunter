@@ -19,12 +19,9 @@ class SupabaseUser:
         self.email = email
         self.is_authenticated = True
 
-    @property
-    def pk(self):
-        return self.supabase_uid
-
     def __str__(self):
         return f"SupabaseUser({self.email})"
+
 
 
 
