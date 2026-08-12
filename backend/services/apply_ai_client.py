@@ -7,13 +7,38 @@ logger = logging.getLogger(__name__)
 APPLY_AI_URL = os.getenv("APPLY_AI_URL", "http://localhost:8001").rstrip("/")
 
 
-class ApplyAIError(Exception):
+class ApplyAIBaseError(Exception):
+    """Base exception for ApplyAI client operations."""
+    pass
+
+
+class ApplyAITimeoutError(ApplyAIBaseError):
+    """Raised when request to ApplyAI times out."""
+
+    def __init__(self, message: str = "The AI service did not respond within the allowed time."):
+        self.message = message
+        super().__init__(message)
+
+
+class ApplyAIConnectionError(ApplyAIBaseError):
+    """Raised when connection to ApplyAI fails."""
+
+    def __init__(self, message: str = "Could not communicate with the upstream AI service."):
+        self.message = message
+        super().__init__(message)
+
+
+class ApplyAIHTTPError(ApplyAIBaseError):
     """Raised when Apply AI returns an HTTP error with a parseable body."""
 
     def __init__(self, status_code: int, detail):
         self.status_code = status_code
         self.detail = detail
-        super().__init__(str(detail))
+        super().__init__(f"ApplyAI HTTP {status_code}: {detail}")
+
+
+# Alias for backwards compatibility with existing callers
+ApplyAIError = ApplyAIHTTPError
 
 
 def _get_auth_header(token: str) -> dict:
@@ -34,7 +59,7 @@ def _raise_for_apply_ai(response: httpx.Response):
         detail = body.get("detail", body)
     except Exception:
         detail = response.text or f"Apply AI error ({response.status_code})"
-    raise ApplyAIError(response.status_code, detail)
+    raise ApplyAIHTTPError(response.status_code, detail)
 
 
 def generate_resume(token: str, job_description: str):
@@ -51,7 +76,7 @@ def generate_resume(token: str, job_description: str):
             response = client.post(url, headers=headers, json=payload)
             _raise_for_apply_ai(response)
             return response.json()
-    except ApplyAIError:
+    except ApplyAIHTTPError:
         raise
     except httpx.HTTPError as exc:
         logger.error(f"ApplyAI generate_resume HTTP error: {exc}")
@@ -155,8 +180,15 @@ def analyze_job(token: str, job_description: str):
         start_timestamp,
     )
 
+    timeout = httpx.Timeout(
+        connect=10.0,
+        write=30.0,
+        read=150.0,
+        pool=10.0,
+    )
+
     try:
-        with httpx.Client(timeout=60.0) as client:
+        with httpx.Client(timeout=timeout) as client:
             logger.info("Immediately BEFORE client.post() to URL: %s", url)
             response = client.post(url, headers=headers, json=payload)
             logger.info("Immediately AFTER client.post() to URL: %s", url)
@@ -172,16 +204,36 @@ def analyze_job(token: str, job_description: str):
         _raise_for_apply_ai(response)
         return response.json()
 
-    except ApplyAIError as exc:
+    except ApplyAIHTTPError as exc:
         duration = time.time() - start_time
         logger.exception(
-            "AnalyzeJob ApplyAIError (%s) | Duration: %.3fs | Status: %s | Detail: %s",
+            "AnalyzeJob ApplyAIHTTPError (%s) | Duration: %.3fs | Status: %s | Detail: %s",
             type(exc).__name__,
             duration,
             exc.status_code,
             exc.detail,
         )
         raise
+
+    except httpx.TimeoutException as exc:
+        duration = time.time() - start_time
+        logger.exception(
+            "AnalyzeJob Timeout | Duration: %.3fs | URL: %s | Exception: %s",
+            duration,
+            url,
+            type(exc).__name__,
+        )
+        raise ApplyAITimeoutError("The AI service did not respond within the allowed time.") from exc
+
+    except (httpx.ConnectError, httpx.ConnectTimeout) as exc:
+        duration = time.time() - start_time
+        logger.exception(
+            "AnalyzeJob Connection Error | Duration: %.3fs | URL: %s | Exception: %s",
+            duration,
+            url,
+            type(exc).__name__,
+        )
+        raise ApplyAIConnectionError("Could not connect to the upstream AI service.") from exc
 
     except httpx.HTTPError as exc:
         duration = time.time() - start_time
@@ -191,7 +243,7 @@ def analyze_job(token: str, job_description: str):
             duration,
             url,
         )
-        return None
+        raise ApplyAIConnectionError("HTTP protocol error communicating with AI service.") from exc
 
     except Exception as exc:
         duration = time.time() - start_time
@@ -201,7 +253,7 @@ def analyze_job(token: str, job_description: str):
             duration,
             url,
         )
-        return None
+        raise ApplyAIBaseError(f"Unexpected error calling AI service: {str(exc)}") from exc
 
 
 def get_profile(token: str):

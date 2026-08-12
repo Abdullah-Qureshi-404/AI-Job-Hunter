@@ -225,7 +225,13 @@ class AnalyzeJobView(APIView):
     def post(self, request):
         from rest_framework import status
         from .serializers import JobAnalyzeSerializer
-        from services.apply_ai_client import ApplyAIError, analyze_job
+        from services.apply_ai_client import (
+            analyze_job,
+            ApplyAITimeoutError,
+            ApplyAIConnectionError,
+            ApplyAIHTTPError,
+            ApplyAIBaseError,
+        )
 
         logger.info("========== DJANGO ANALYZE REQUEST ==========")
         logger.info("request.auth exists: %s", bool(request.auth))
@@ -254,16 +260,51 @@ class AnalyzeJobView(APIView):
 
         try:
             result = analyze_job(token, job_description)
-
-        except ApplyAIError as exc:
-            logger.exception(
-                "ApplyAI returned an error: %s",
-                exc.detail
+            logger.info("========== DJANGO ANALYZE SUCCESS ==========")
+            return Response(
+                result,
+                status=status.HTTP_200_OK
             )
 
+        except ApplyAITimeoutError as exc:
+            logger.warning("AnalyzeJobView: ApplyAI timeout: %s", exc.message)
             return Response(
-                {"error": exc.detail},
-                status=exc.status_code,
+                {
+                    "error": "AI analysis service timed out",
+                    "detail": exc.message,
+                },
+                status=status.HTTP_504_GATEWAY_TIMEOUT,
+            )
+
+        except ApplyAIConnectionError as exc:
+            logger.warning("AnalyzeJobView: ApplyAI connection error: %s", exc.message)
+            return Response(
+                {
+                    "error": "AI service unavailable",
+                    "detail": exc.message,
+                },
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+
+        except ApplyAIHTTPError as exc:
+            logger.warning("AnalyzeJobView: ApplyAI HTTP error %s: %s", exc.status_code, exc.detail)
+            resp_status = exc.status_code if (400 <= exc.status_code < 600) else status.HTTP_502_BAD_GATEWAY
+            return Response(
+                {
+                    "error": "AI service error",
+                    "detail": exc.detail,
+                },
+                status=resp_status,
+            )
+
+        except ApplyAIBaseError as exc:
+            logger.exception("AnalyzeJobView: ApplyAI base error: %s", exc)
+            return Response(
+                {
+                    "error": "AI service error",
+                    "detail": str(exc),
+                },
+                status=status.HTTP_502_BAD_GATEWAY,
             )
 
         except Exception as exc:
@@ -271,30 +312,14 @@ class AnalyzeJobView(APIView):
                 "UNEXPECTED AnalyzeJobView ERROR: %s",
                 exc
             )
-
             return Response(
-                {"error": str(exc)},
+                {
+                    "error": "Internal server error during job analysis",
+                    "detail": str(exc),
+                },
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
-        if result is None:
-            logger.error(
-                "ApplyAI returned None. FastAPI request failed or timed out."
-            )
-
-            return Response(
-                {
-                    "error": "AI service is temporarily unavailable. Please try again later."
-                },
-                status=status.HTTP_503_SERVICE_UNAVAILABLE,
-            )
-
-        logger.info("========== DJANGO ANALYZE SUCCESS ==========")
-
-        return Response(
-            result,
-            status=status.HTTP_200_OK
-        )
 
 
 class DiagnosticHealthView(APIView):

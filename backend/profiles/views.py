@@ -69,7 +69,7 @@ class ProfileView(generics.ListCreateAPIView):
             # No profile yet for this user. Never fall back to the full table.
             return Profile.objects.none()
 
-        return Profile.objects.filter(pk=profile.pk)
+        return Profile.objects.filter(pk=profile.pk).order_by("-updated_at")
 
     def post(self, request, *args, **kwargs):
         supabase_uid = getattr(request.user, "supabase_uid", None)
@@ -105,7 +105,8 @@ class CVListView(generics.ListAPIView):
         if profile is None:
             return CV.objects.none()
 
-        return CV.objects.filter(profile=profile)
+        return CV.objects.filter(profile=profile).order_by("-created_at")
+
 
 
 # This view uploads a CV and extracts text.
@@ -219,7 +220,8 @@ class CVDeleteView(generics.DestroyAPIView):
         if profile is None:
             return CV.objects.none()
 
-        return CV.objects.filter(profile=profile)
+        return CV.objects.filter(profile=profile).order_by("-created_at")
+
 
     def perform_destroy(self, instance):
 
