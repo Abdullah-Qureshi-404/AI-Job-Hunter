@@ -63,31 +63,94 @@ def generate_resume(token: str, job_description: str):
         return None
 
 
+# def analyze_job(token: str, job_description: str):
+#     """
+#     Calls ApplyAI FastAPI service to analyze a job description.
+#     Endpoint: POST /job/analyze
+#     """
+#     url = f"{APPLY_AI_URL}/job/analyze"
+#     headers = _get_auth_header(token)
+#     payload = {"job_description": job_description}
+
+#     try:
+#         with httpx.Client(timeout=60.0) as client:
+#             response = client.post(url, headers=headers, json=payload)
+#             _raise_for_apply_ai(response)
+#             return response.json()
+#     except ApplyAIError:
+#         raise
+#     except httpx.HTTPError as exc:
+#         logger.error(f"ApplyAI analyze_job HTTP error: {exc}")
+#         print(f"ApplyAI analyze_job HTTP error: {exc}")
+#         return None
+#     except Exception as exc:
+#         logger.error(f"ApplyAI analyze_job failed: {exc}")
+#         print(f"ApplyAI analyze_job failed: {exc}")
+#         return None
+
+
 def analyze_job(token: str, job_description: str):
     """
     Calls ApplyAI FastAPI service to analyze a job description.
     Endpoint: POST /job/analyze
     """
+
     url = f"{APPLY_AI_URL}/job/analyze"
     headers = _get_auth_header(token)
     payload = {"job_description": job_description}
 
+    logger.warning("========== ANALYZE JOB DEBUG ==========")
+    logger.warning("ApplyAI URL: %s", url)
+    logger.warning("Token present: %s", bool(token))
+    logger.warning("Authorization header present: %s", bool(headers))
+    logger.warning("Job description length: %s", len(job_description))
+
     try:
-        with httpx.Client(timeout=60.0) as client:
-            response = client.post(url, headers=headers, json=payload)
-            _raise_for_apply_ai(response)
-            return response.json()
-    except ApplyAIError:
+        logger.warning("Sending request to FastAPI...")
+
+        with httpx.Client(timeout=120.0) as client:
+            response = client.post(
+                url,
+                headers=headers,
+                json=payload,
+            )
+
+        logger.warning(
+            "FastAPI responded: status=%s body=%s",
+            response.status_code,
+            response.text[:1000],
+        )
+
+        _raise_for_apply_ai(response)
+
+        result = response.json()
+
+        logger.warning("FastAPI JSON parsed successfully")
+        logger.warning("========== ANALYZE JOB SUCCESS ==========")
+
+        return result
+
+    except ApplyAIError as exc:
+        logger.exception(
+            "FastAPI returned HTTP error: status=%s detail=%s",
+            exc.status_code,
+            exc.detail,
+        )
         raise
+
     except httpx.HTTPError as exc:
-        logger.error(f"ApplyAI analyze_job HTTP error: {exc}")
-        print(f"ApplyAI analyze_job HTTP error: {exc}")
-        return None
-    except Exception as exc:
-        logger.error(f"ApplyAI analyze_job failed: {exc}")
-        print(f"ApplyAI analyze_job failed: {exc}")
+        logger.exception(
+            "HTTPX ERROR while calling FastAPI: %s",
+            exc,
+        )
         return None
 
+    except Exception as exc:
+        logger.exception(
+            "UNEXPECTED ERROR while analyzing job: %s",
+            exc,
+        )
+        return None
 
 def get_profile(token: str):
     """

@@ -183,42 +183,120 @@ class FetchJobsView(APIView):
 
 
 
-# Analyzes job description using ApplyAI service.
+# # Analyzes job description using ApplyAI service.
+# class AnalyzeJobView(APIView):
+#     throttle_scope = "ai_services"
+
+#     def post(self, request):
+#         """
+#         POST /api/jobs/analyze/
+#         """
+#         from rest_framework import status
+#         from .serializers import JobAnalyzeSerializer
+#         from services.apply_ai_client import ApplyAIError, analyze_job
+
+#         serializer = JobAnalyzeSerializer(data=request.data)
+#         if not serializer.is_valid():
+#             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+#         token = request.auth
+#         job_description = serializer.validated_data["job_description"]
+
+#         try:
+#             result = analyze_job(token, job_description)
+#         except ApplyAIError as exc:
+#             return Response(
+#                 {"error": exc.detail},
+#                 status=exc.status_code,
+#             )
+
+#         if result is None:
+#             return Response(
+#                 {"error": "AI service is temporarily unavailable. Please try again later."},
+#                 status=status.HTTP_503_SERVICE_UNAVAILABLE,
+#             )
+
+#         return Response(result, status=status.HTTP_200_OK)
+
+
 class AnalyzeJobView(APIView):
     throttle_scope = "ai_services"
 
     def post(self, request):
-        """
-        POST /api/jobs/analyze/
-        """
         from rest_framework import status
         from .serializers import JobAnalyzeSerializer
         from services.apply_ai_client import ApplyAIError, analyze_job
 
+        logger.info("========== DJANGO ANALYZE REQUEST ==========")
+        logger.info("request.auth exists: %s", bool(request.auth))
+        logger.info("request.user: %s", request.user)
+
         serializer = JobAnalyzeSerializer(data=request.data)
+
         if not serializer.is_valid():
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            logger.warning(
+                "Job analysis serializer error: %s",
+                serializer.errors
+            )
+            return Response(
+                serializer.errors,
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
         token = request.auth
         job_description = serializer.validated_data["job_description"]
 
+        logger.info(
+            "Calling ApplyAI. Token exists=%s, description_length=%s",
+            bool(token),
+            len(job_description)
+        )
+
         try:
             result = analyze_job(token, job_description)
+
         except ApplyAIError as exc:
+            logger.exception(
+                "ApplyAI returned an error: %s",
+                exc.detail
+            )
+
             return Response(
                 {"error": exc.detail},
                 status=exc.status_code,
             )
 
-        if result is None:
+        except Exception as exc:
+            logger.exception(
+                "UNEXPECTED AnalyzeJobView ERROR: %s",
+                exc
+            )
+
             return Response(
-                {"error": "AI service is temporarily unavailable. Please try again later."},
+                {"error": str(exc)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+        if result is None:
+            logger.error(
+                "ApplyAI returned None. FastAPI request failed or timed out."
+            )
+
+            return Response(
+                {
+                    "error": "AI service is temporarily unavailable. Please try again later."
+                },
                 status=status.HTTP_503_SERVICE_UNAVAILABLE,
             )
 
-        return Response(result, status=status.HTTP_200_OK)
+        logger.info("========== DJANGO ANALYZE SUCCESS ==========")
 
+        return Response(
+            result,
+            status=status.HTTP_200_OK
+        )
 
+    
 # Generates tailored resume content using ApplyAI service.
 class GenerateResumeView(APIView):
     throttle_scope = "ai_services"
