@@ -18,10 +18,10 @@ from .serializers import JobListSerializer
 from .serializers import SavedJobSerializer
 
 from jobs.scrapers.orchestrator import run_all_scrapers
-from jobs.logger import get_scraper_logger
+import logging
 
+logger = logging.getLogger("jobs.views")
 
-logger = get_scraper_logger("views")
 
 
 def jobs_with_match_score(request):
